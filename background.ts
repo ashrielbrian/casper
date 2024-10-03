@@ -5,17 +5,6 @@ import { pipeline, env, type PipelineType } from "@xenova/transformers";
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
 
-import { getDB } from "~db";
-
-// TODO: instantiate database
-// TODO: setup pipeline instance when the extension starts
-// TODO: when a new webpage is visited,
-//          1. send message with html from content to background
-//          2. background worker runs the pipeline
-//          3. embeddings stored in pglite
-// TODO: add a search bar in the popup.tsx fires a search of the pglite instance and returns its results
-// TODO: add a deletion expiry
-
 class PipelineSingleton {
     static task = "feature-extraction" as PipelineType;
     static model = "Supabase/gte-small";
@@ -42,7 +31,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
 
         // get the db instance 
-        const db = getDB();
+        // const db = getDB();
 
         // TODO: get the URL. if the URL has been visited before, don't generate embeddings
         const sourceUrl = sender.url;
@@ -53,7 +42,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
         // TODO: chunk the HTML content here
 
-        // pass the chunks into the embeddings func
+        // TODO: pass the chunks into the embeddings func
+
+        // TODO: return the embedding vector to the main thread
         sendResponse({ ok: true, error: null })
 
         // Keep the message channel open for async response
