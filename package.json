@@ -10,7 +10,6 @@
     "package": "plasmo package"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.2.7",
     "@xenova/transformers": "^2.17.2",
     "plasmo": "0.89.2",
     "react": "18.2.0",
@@ -26,15 +25,29 @@
     "typescript": "5.3.3"
   },
   "manifest": {
+    "background": {
+      "service_worker": "background.ts",
+      "type": "module"
+    },
     "host_permissions": [
       "https://*/*"
-    ]
-  },
-  "permissions": [
+    ],
+    "permissions": [
       "tabs",
       "contextMenus"
     ],
     "content_security_policy": {
-      "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
-    }
+      "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+    },
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "dist"
+        ],
+        "matches": [
+          "<all_urls>"
+        ]
+      }
+    ]
+  }
 }
