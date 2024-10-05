@@ -26,31 +26,31 @@ worker({
 
 console.log("Service worker has the PGlite worker started.")
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    console.log("background received:", message)
-    if (message.type === "get_html_embedding") {
+// chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+//     console.log("background received:", message)
+//     if (message.type === "get_html_embedding") {
 
-        const pipeline = await PipelineSingleton.getInstance((x) => {
-            console.log("Progress update", x)
-        });
+//         const pipeline = await PipelineSingleton.getInstance((x) => {
+//             console.log("Progress update", x)
+//         });
 
-        // get the db instance 
-        // const db = getDB();
+//         // get the db instance 
+//         // const db = getDB();
 
-        // TODO: get the URL. if the URL has been visited before, don't generate embeddings
-        const sourceUrl = sender.url;
+//         // TODO: get the URL. if the URL has been visited before, don't generate embeddings
+//         const sourceUrl = sender.url;
 
-        const htmlContent = message.payload;
+//         const htmlContent = message.payload;
 
-        console.log("from bg:", sourceUrl, htmlContent)
+//         console.log("from bg:", sourceUrl, htmlContent)
 
-        // TODO: chunk the HTML content here
+//         // TODO: chunk the HTML content here
 
-        // pass the chunks into the embeddings func
-        sendResponse({ ok: true, error: null })
+//         // pass the chunks into the embeddings func
+//         sendResponse({ ok: true, error: null })
 
-        // Keep the message channel open for async response
-        return true;
-    }
+//         // Keep the message channel open for async response
+//         return true;
+//     }
 
-})
+// })
