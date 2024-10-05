@@ -6,6 +6,7 @@ import { pipeline, env, type PipelineType } from "@xenova/transformers";
 env.backends.onnx.wasm.numThreads = 1;
 
 class PipelineSingleton {
+    // TODO: is it possible to ensure there's only a single instance of transformers Pipeline, and each worker reuses the same Pipeline?
     static task = "feature-extraction" as PipelineType;
     static model = "Supabase/gte-small";
     static instance = null;
@@ -30,22 +31,24 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             console.log("Progress update", x)
         });
 
-        // get the db instance 
-        // const db = getDB();
-
-        // TODO: get the URL. if the URL has been visited before, don't generate embeddings
         const sourceUrl = sender.url;
+        const chunk = message.payload;
 
-        const htmlContent = message.payload;
+        console.log("from bg:", sourceUrl, chunk)
 
-        console.log("from bg:", sourceUrl, htmlContent)
+        // generate embeddings for each chunk
+        const output = await pipeline(chunk, {
+            pooling: "mean",
+            normalize: true,
+        });
 
-        // TODO: chunk the HTML content here
+        // Extract the embedding output
+        const embedding = Array.from(output.data);
 
-        // TODO: pass the chunks into the embeddings func
+        console.log("Generated embedding: ", embedding.length)
 
-        // TODO: return the embedding vector to the main thread
-        sendResponse({ ok: true, error: null })
+        // return the embedding vector to the main thread
+        sendResponse({ ok: true, error: null, embedding, chunk })
 
         // Keep the message channel open for async response
         return true;
