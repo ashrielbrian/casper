@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from "react"
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
-
+import { vector } from "~dist/electric-sql/vector";
+import { raw, sql } from "~dist/electric-sql/templating";
 
 const extractHtmlBody = () => {
     return document.body.outerHTML;
 }
 
 const urlIsPresentOrInDatetimeRange = async (worker: PGliteWorker, url: string, withinDays: number = 3) => {
-    // TODO: fetch from db whether url exists and/or is within the required days
+    // fetch from db whether url exists and/or is within the required days
     let res = await worker.query("SELECT id, createdAt FROM page WHERE url = $1", [url])
 
     if (res.rows.length > 0) {
         console.log(`url exist ${url} of rows: ${res.rows}`)
         return true;
 
+    } else {
+        let out = await worker.query("INSERT INTO page (url, title) VALUES ($1, $2)", [url, "test"]);
+        console.log("Inserted into pages", out.affectedRows)
     }
     return false;
 }
@@ -27,8 +31,9 @@ const PlasmoOverlay = () => {
             const newWorker = new PGliteWorker(
                 new Worker(new URL("./worker.js", import.meta.url), {
                     type: "module"
-                })
-            );
+                }), {
+                extensions: { vector }
+            });
 
             console.log("worker waiting to be ready")
             await newWorker.waitReady;
@@ -47,23 +52,23 @@ const PlasmoOverlay = () => {
 
             // Database operations
             await newWorker.exec(`
+                CREATE EXTENSION IF NOT EXISTS vector;
 
                 CREATE TABLE IF NOT EXISTS page(
-            id SERIAL PRIMARY KEY,
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updatedAt TIMESTAMP DEFAULT NOW(),
-            url TEXT NOT NULL UNIQUE,
-            title TEXT
-        );
-
-                CREATE TABLE IF NOT EXISTS embedding(
-            page_id INT REFERENCES page(id) ON DELETE CASCADE,
-            order INT,
-            content TEXT NOT NULL,
-            embedding vector(384),
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
+                    id SERIAL PRIMARY KEY,
+                    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updatedAt TIMESTAMP DEFAULT NOW(),
+                    url TEXT NOT NULL UNIQUE,
+                    title TEXT
+                    );
+                    
+                    CREATE TABLE IF NOT EXISTS embedding(
+                        id SERIAL PRIMARY KEY,
+                    page_id INT REFERENCES page(id) ON DELETE CASCADE,
+                    content TEXT NOT NULL,
+                    embedding vector(384),
+                    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
         `);
 
             // const result = await newWorker.query(`
@@ -85,7 +90,8 @@ const PlasmoOverlay = () => {
 
             const processPage = async () => {
                 // check the URL - if it exists, check if age of the URL. if older than a day, delete the old entries, chunk new and get new embs
-                if (!await urlIsPresentOrInDatetimeRange(worker, location.href)) {
+                // if (!await urlIsPresentOrInDatetimeRange(worker, location.href)) {
+                if (true) {
 
                     // grab only the headers and paragraphs from the webpage
                     const { headers, paragraphs } = extractHeadersAndParagraphs(webpageBodyContent);
@@ -155,8 +161,10 @@ const getUrlId = async (worker: PGliteWorker, url: string) => {
 
 const storeEmbeddings = async (worker: PGliteWorker, urlId: string, chunk: string, embedding: number[]) => {
 
-    // insert chunk embedding into the page url
-    const insertRes = await worker.query("INSERT INTO embedding (page_id, content, embedding) VALUES ($1, $2, $3);", [urlId, chunk, embedding])
+    let embStr = `'[${embedding}]'`
+    const insertRes = await worker.query(`INSERT INTO embedding (page_id, content, embedding) VALUES ($1, $2, ${embStr});`,
+        [urlId, chunk]
+    );
 
     console.log("Inserted embedding", insertRes)
 }
