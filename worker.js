@@ -14,11 +14,17 @@ import { worker } from 'dist/electric-sql/worker/index.js'
 
 worker({
     async init() {
-        const pg = new PGlite('idb://casper.db', {
+        // const pg = new PGlite('idb://casper.db', {
+        //     extensions: {
+        //         vector,
+        //     },
+        // });
+
+        const pg = await PGlite.create('idb://casper.db', {
             extensions: {
                 vector,
             },
-        });
+        })
         // If you want run any specific setup code for the worker process, you can do it here.
         return pg;
     },
