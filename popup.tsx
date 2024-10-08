@@ -1,7 +1,40 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
+import { search, type SearchResult } from "~db";
+import { vector } from "~dist/electric-sql/vector";
+import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
+import { sendTextChunkToBackground } from "~content";
+
 
 function IndexPopup() {
-  const [data, setData] = useState("")
+  const [data, setData] = useState<SearchResult[]>([])
+  const [textToSearch, setTextToSearch] = useState("");
+  const [worker, setWorker] = useState<PGliteWorker>(null);
+
+  useEffect(() => {
+    const newWorker = new PGliteWorker(
+      new Worker(new URL("./worker.js", import.meta.url), {
+        type: "module"
+      }), {
+      extensions: { vector }
+    });
+
+    setWorker(worker);
+  }, [])
+
+  const searchPastPages = async () => {
+    if (worker && textToSearch) {
+
+      const backgroundResponse = await sendTextChunkToBackground(textToSearch);
+      const results = await search(worker, backgroundResponse.embedding, 0.8, 3);
+
+      console.log("Results of the search:", results);
+
+      setData(results);
+
+    }
+  }
+
 
   return (
     <div
@@ -15,10 +48,27 @@ function IndexPopup() {
         </a>{" "}
         Extension!
       </h2>
-      <input onChange={(e) => setData(e.target.value)} value={data} />
-      <a href="https://docs.plasmo.com" target="_blank">
+
+      {/* Input and Search button to provide text to search */}
+      <input type="text" name="search" id="search" value={textToSearch} onChange={(e) => setTextToSearch(e.target.value)} placeholder="Enter text to search" />
+      <button onClick={searchPastPages} disabled={!textToSearch}>Search</button>
+
+
+      <ul>
+        {data.length > 0 ? (
+          data.map((result) => (
+            <li key={result.id}>
+              <h3>Page ID: {result.page_id}</h3>
+              <p>{result.content}</p>
+              <p>Relevance: {result.prob.toFixed(3)}</p>
+            </li>
+          ))
+        ) : (<></>)}
+
+      </ul>
+      {/* <a href="https://docs.plasmo.com" target="_blank">
         View Docs
-      </a>
+      </a> */}
     </div>
   )
 }
