@@ -19,10 +19,13 @@ function IndexPopup() {
       extensions: { vector }
     });
 
-    setWorker(worker);
+    console.log("Setting worker in popup page")
+    setWorker(newWorker);
+    console.log(worker)
   }, [])
 
   const searchPastPages = async () => {
+    console.log(worker, textToSearch)
     if (worker && textToSearch) {
 
       const backgroundResponse = await sendTextChunkToBackground(textToSearch);

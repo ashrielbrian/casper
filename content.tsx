@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from "~dist/electric-sql/vector";
-import { raw, sql } from "~dist/electric-sql/templating";
+
 
 const extractHtmlBody = () => {
     return document.body.outerHTML;
@@ -90,8 +90,8 @@ const PlasmoOverlay = () => {
 
             const processPage = async () => {
                 // check the URL - if it exists, check if age of the URL. if older than a day, delete the old entries, chunk new and get new embs
-                // if (!await urlIsPresentOrInDatetimeRange(worker, location.href)) {
-                if (true) {
+                if (!await urlIsPresentOrInDatetimeRange(worker, location.href)) {
+                    // if (true) {
 
                     // grab only the headers and paragraphs from the webpage
                     const { headers, paragraphs } = extractHeadersAndParagraphs(webpageBodyContent);
@@ -121,7 +121,7 @@ const PlasmoOverlay = () => {
     return null;
 }
 
-const sendTextChunkToBackground = async (textChunk: string) => {
+export const sendTextChunkToBackground = async (textChunk: string) => {
     return await chrome.runtime.sendMessage({ type: "get_html_embedding", payload: textChunk })
 }
 const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => a.map((ele, idx) => [idx, ele, b[idx]])
