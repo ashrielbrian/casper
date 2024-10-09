@@ -2,6 +2,7 @@ import { PGlite } from "dist/electric-sql/index.js";
 import { vector } from 'dist/electric-sql/vector/index.js';
 import { worker } from 'dist/electric-sql/worker/index.js'
 
+import { getDB } from "~db";
 
 // TODO: instantiate database
 // TODO: setup pipeline instance when the extension starts
@@ -14,18 +15,8 @@ import { worker } from 'dist/electric-sql/worker/index.js'
 
 worker({
     async init() {
-        // const pg = new PGlite('idb://casper.db', {
-        //     extensions: {
-        //         vector,
-        //     },
-        // });
 
-        const pg = await PGlite.create('idb://casper.db', {
-            extensions: {
-                vector,
-            },
-        })
-        // If you want run any specific setup code for the worker process, you can do it here.
+        const pg = await getDB();
         return pg;
     },
 });

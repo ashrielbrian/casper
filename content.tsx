@@ -89,6 +89,8 @@ const PlasmoOverlay = () => {
 
         const processPage = async () => {
 
+            console.log(headers[0])
+
             const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs])
 
             console.log("Page has been processed. Background response: ", backgroundResponse)

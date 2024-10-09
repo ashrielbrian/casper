@@ -1,9 +1,8 @@
 export { }
 
-import { pipeline, env, type PipelineType } from "@xenova/transformers";
-
 import { getDB, search, type SearchResult } from "~db";
-import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
+import { pipeline, env, type PipelineType } from "@xenova/transformers";
+import { PGliteWorker } from "~dist/electric-sql/worker";
 
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
@@ -74,8 +73,8 @@ const runInference = async (pipeline, chunk: string) => {
     return embedding;
 }
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     const pg = await getDB();
     console.log(`Message is of type: ${message.type}`);
 
