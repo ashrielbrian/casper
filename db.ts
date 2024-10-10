@@ -2,10 +2,8 @@
 import { PGlite } from "~dist/electric-sql";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
-// import { worker } from '@electric-sql/pglite/worker'
 
-// import { PGlite } from "electric-sql/dist/index.js"
-// import { vector } from "electric-sql/dist/vector/index.js"
+// TODO: add a deletion expiry
 
 const DB_STORAGE = "idb://casper"
 let dbInstance;
