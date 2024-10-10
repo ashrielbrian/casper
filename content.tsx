@@ -7,6 +7,7 @@ const extractHtmlBody = () => {
 const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => a.map((ele, idx) => [idx, ele, b[idx]])
 
 const extractHeadersAndParagraphs = (htmlContent: string) => {
+    const MIN_CHAR_LIMIT = 30;
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
 
@@ -14,8 +15,8 @@ const extractHeadersAndParagraphs = (htmlContent: string) => {
     const paragraphs = doc.querySelectorAll('p');
 
     // Extract the text content of the headers and paragraphs
-    const headerTexts = Array.from(headers).map(header => header.textContent.trim());
-    const paragraphTexts = Array.from(paragraphs).map(paragraph => paragraph.textContent.trim());
+    const headerTexts = Array.from(headers).map(header => header.textContent.trim()).filter(header => header.length > MIN_CHAR_LIMIT);
+    const paragraphTexts = Array.from(paragraphs).map(paragraph => paragraph.textContent.trim()).filter(paragraph => paragraph.length > MIN_CHAR_LIMIT);
 
     return {
         headers: headerTexts,
@@ -32,11 +33,7 @@ const PlasmoOverlay = () => {
         const { headers, paragraphs } = extractHeadersAndParagraphs(webpageBodyContent);
 
         const processPage = async () => {
-
-            console.log(headers[0])
-
             const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs])
-
             console.log("Page has been processed. Background response: ", backgroundResponse)
         }
         processPage().catch(console.error)
