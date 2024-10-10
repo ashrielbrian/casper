@@ -4,6 +4,8 @@ import { search, type SearchResult } from "~db";
 import { vector } from "~dist/electric-sql/vector";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 
+import "./style.css"
+
 const sendTextChunkToBackground = async (chunk: string) => {
     return await chrome.runtime.sendMessage({ type: "get_embedding", chunk })
 }
@@ -43,10 +45,10 @@ function IndexPopup() {
 
 
     return (
-        <div
-            style={{
+        <div className="p-16">
+            {/* style={{
                 padding: 16
-            }}>
+            }} */}
             <h2>
                 Welcome to your{" "}
                 <a href="https://www.plasmo.com" target="_blank">
