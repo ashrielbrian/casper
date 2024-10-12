@@ -51,7 +51,7 @@ function IndexPopup() {
     }, [])
 
     return (
-        <div className={`p-8 w-[40rem] flex flex-col space-y-2 bg-slate-100 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-64'}`}>
+        <div className={`p-8 w-[40rem] flex flex-col space-y-2 bg-slate-50 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-96'}`}>
             <div className="space-y-1">
                 {/* Header section */}
                 <h4 className="font-extrabold text-xl font-mono">
@@ -64,7 +64,7 @@ function IndexPopup() {
 
             <Separator />
 
-            <div className="flex items-center justify-center w-full">
+            <div className="flex items-center justify-center w-full font-mono">
 
                 <Tabs defaultValue="search" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">

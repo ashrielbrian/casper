@@ -1,6 +1,8 @@
 import { Button } from "./Button"
+import { Card } from "./Card"
 import { Label } from "./Label"
 import { ModelSelector } from "./ModelSelector"
+import { Separator } from "./Separator"
 
 const AVAILABLE_MODELS = [
     "Supabase/gte-small",
@@ -10,15 +12,17 @@ const AVAILABLE_MODELS = [
 
 export const Settings = () => {
     return (
-        <div className="flex-col space-y-4 justify-center">
-            <div className="flex items-center">
-                <Label className="w-1/3 pr-4 font-bold text-right">Embedding Model:</Label>
-                <ModelSelector models={AVAILABLE_MODELS} />
+        <Card className="p-4">
+            <div className="flex-col space-y-4 justify-center">
+                <div className="flex items-center">
+                    <Label className="w-1/3 pr-4 font-bold text-right">Embedding Model:</Label>
+                    <ModelSelector models={AVAILABLE_MODELS} />
+                </div>
+                <div className="flex items-center">
+                    <div className="w-1/3"></div>
+                    <Button className="flex-0 font-extrabold" variant="destructive">Clear Database</Button>
+                </div>
             </div>
-            <div className="flex items-center">
-                <div className="w-1/3"></div>
-                <Button className="flex-0" variant="destructive">Clear Database</Button>
-            </div>
-        </div>
+        </Card>
     )
 }

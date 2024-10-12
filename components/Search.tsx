@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Separator } from "./Separator";
 import type { PGliteWorker } from "~dist/electric-sql/worker";
 import { search, type SearchResult } from "~db";
+import { Card } from "./Card";
 
 interface SearchProps {
     worker: PGliteWorker;
@@ -35,7 +36,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }
 
     return (
-        <>
+        <Card className="p-4">
             {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
             <div className="relative -mx-8 px-8 py-4 space-x-2 flex items-center">
                 {/* Input and Search button to provide text to search */}
@@ -43,11 +44,9 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
                 <Button onClick={searchPastPages} disabled={!textToSearch || isSearching}> Search</Button>
             </div>
 
-            <Separator />
-
             {searchResults && searchResults.length > 0 ?
                 <SearchResultsTable results={searchResults}></SearchResultsTable> : <></>
             }
-        </>
+        </Card>
     )
 }
