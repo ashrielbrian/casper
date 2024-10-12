@@ -13,14 +13,17 @@ const extractHeadersAndParagraphs = (htmlContent: string) => {
 
     const headers = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
     const paragraphs = doc.querySelectorAll('p');
+    const listItems = doc.querySelectorAll('li');
 
     // Extract the text content of the headers and paragraphs
     const headerTexts = Array.from(headers).map(header => header.textContent.trim()).filter(header => header.length > MIN_CHAR_LIMIT);
     const paragraphTexts = Array.from(paragraphs).map(paragraph => paragraph.textContent.trim()).filter(paragraph => paragraph.length > MIN_CHAR_LIMIT);
+    const listItemsTexts = Array.from(listItems).map(items => items.textContent.trim()).filter(items => items.length > MIN_CHAR_LIMIT);
 
     return {
         headers: headerTexts,
-        paragraphs: paragraphTexts
+        paragraphs: paragraphTexts,
+        listItems: listItemsTexts
     };
 }
 
@@ -33,8 +36,8 @@ const PlasmoOverlay = () => {
         const { headers, paragraphs } = extractHeadersAndParagraphs(webpageBodyContent);
 
         const processPage = async () => {
-            const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs])
-            console.log("Page has been processed. Background response: ", backgroundResponse)
+            // const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs])
+            // console.log("Page has been processed. Background response: ", backgroundResponse)
         }
         processPage().catch(console.error)
 
