@@ -53,7 +53,11 @@ export const initSchema = async (db: PGlite) => {
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        create index on embedding using hnsw (embedding vector_ip_ops);
+        CREATE INDEX IF NOT EXISTS page_created_at_index
+        ON page(createdAt);
+
+        CREATE INDEX ON embedding USING hnsw (embedding vector_ip_ops);
+
     `)
 }
 export interface SearchResult {
@@ -64,7 +68,7 @@ export interface SearchResult {
     prob: number
 }
 
-export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 3): Promise<SearchResult[]> => {
+export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
     const res = await db.query(`
         SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob 
         FROM embedding
@@ -86,4 +90,14 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
         url: row.url,
         prob: row.prob
     }));
+}
+
+export const deletePagesOlderThan = async (db: PGliteWorker) => {
+    const res = await db.query(`
+        DELETE FROM page
+        WHERE page.createdAt < datetime('now', '-14 days');
+    `)
+
+    console.log("Ran delete check:", res.affectedRows)
+    return res.affectedRows;
 }

@@ -1,6 +1,6 @@
 export { }
 
-import { getDB, search, type SearchResult } from "~db";
+import { getDB, search, deletePagesOlderThan, type SearchResult } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
 import { PGliteWorker } from "~dist/electric-sql/worker";
 
@@ -73,6 +73,9 @@ const runInference = async (pipeline, chunk: string) => {
     return embedding;
 }
 
+const deleteIfUrlIsExpired = async (worker: PGliteWorker) => {
+    return await deletePagesOlderThan(worker);
+}
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     const pg = await getDB();
@@ -117,6 +120,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         console.log("Generated embedding: ", embedding.length)
 
         sendResponse({ ok: true, error: null, embedding })
+    } else if (message.type === "clean_up") {
+        await deleteIfUrlIsExpired(pg);
+        sendResponse({ ok: true, error: null })
     }
 
     // Keep the message channel open for async response

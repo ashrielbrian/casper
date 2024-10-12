@@ -6,6 +6,12 @@ const extractHtmlBody = () => {
 
 const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => a.map((ele, idx) => [idx, ele, b[idx]])
 
+const isRandomlyBelow = (threshold = 0.05) => {
+    // returns true (threshold * 100)% of the time
+    return Math.random() <= threshold;
+}
+
+
 const extractHeadersAndParagraphs = (htmlContent: string) => {
     const MIN_CHAR_LIMIT = 30;
     const parser = new DOMParser();
@@ -33,17 +39,30 @@ const PlasmoOverlay = () => {
 
         // grab only the headers and paragraphs from the webpage
         const webpageBodyContent = extractHtmlBody();
-        const { headers, paragraphs } = extractHeadersAndParagraphs(webpageBodyContent);
+        const { headers, paragraphs, listItems } = extractHeadersAndParagraphs(webpageBodyContent);
 
         const processPage = async () => {
-            // const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs])
+            // const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs, ...listItems])
             // console.log("Page has been processed. Background response: ", backgroundResponse)
         }
-        processPage().catch(console.error)
+
+        const cleanUp = async () => {
+            if (isRandomlyBelow(0.05)) {
+                const backgroundResponse = await cleanUpUrlEmbeddings();
+                console.log("Delete check ran. Background response:", backgroundResponse);
+            }
+        }
+
+        processPage().catch(console.error);
+        cleanUp().catch(console.error)
 
     }, [])
 
     return null;
+}
+
+const cleanUpUrlEmbeddings = async () => {
+    return await chrome.runtime.sendMessage({ type: "clean_up" })
 }
 
 export const processPageInBackground = async (url: string, webHeadersAndParas: string[]) => {
