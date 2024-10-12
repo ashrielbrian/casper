@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react"
 
-import { search, type SearchResult } from "~db";
+import { type SearchResult } from "~db";
 import { vector } from "~dist/electric-sql/vector";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 
 import "./style.css"
-import { Input } from "~components/Input";
-import { Button } from "~components/Button";
-import { SearchResultsTable } from "~components/SearchResults";
 
-const sendTextChunkToBackground = async (chunk: string) => {
-    return await chrome.runtime.sendMessage({ type: "get_embedding", chunk })
-}
+import { Separator } from "~components/Separator";
+
+import { Settings } from "~/components/Settings"
+import { Search } from "~/components/Search"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~components/Tabs";
+
 
 function IndexPopup() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-    const [textToSearch, setTextToSearch] = useState("");
-    const [isSearching, setIsSearching] = useState(false);
     const [worker, setWorker] = useState<PGliteWorker>(null);
 
     const setupWorker = () => {
@@ -52,48 +50,35 @@ function IndexPopup() {
         return setupBackgroundTabClickListener()
     }, [])
 
-    const searchPastPages = async () => {
-        if (worker && textToSearch) {
-            setIsSearching(true);
-            const backgroundResponse = await sendTextChunkToBackground(textToSearch);
-
-            const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
-
-            console.log("Results of the search:", results);
-
-            setIsSearching(false);
-            setSearchResults(results);
-        }
-    }
-
-
-
     return (
-        <div className={`p-8 w-[40rem] flex flex-col space-y-2 bg-slate-100 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-40'}`}>
+        <div className={`p-8 w-[40rem] flex flex-col space-y-2 bg-slate-100 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-64'}`}>
             <div className="space-y-1">
                 {/* Header section */}
-                <h4 className="font-extrabold text-xl">
+                <h4 className="font-extrabold text-xl font-mono">
                     👻 Casper
                 </h4>
-                <p className="font-mono text-slate-500 text-xs">Close your tabs freely - search them later.</p>
+                <div className="flex items-end">
+                    <p className="inline-block grow font-mono text-slate-500 text-xs">Close your tabs freely - search them later.</p>
+                </div>
             </div>
 
-            <hr />
+            <Separator />
 
+            <div className="flex items-center justify-center w-full">
 
-            {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
-            <div className="relative -mx-8 px-8 py-4 space-x-2 flex items-center">
-                {/* Input and Search button to provide text to search */}
-                <Input type="text" className="flex-grow" value={textToSearch} onChange={(e) => setTextToSearch(e.target.value)} placeholder="Remind me what websites I've visited.." />
-                <Button onClick={searchPastPages} disabled={!textToSearch || isSearching}> Search</Button>
+                <Tabs defaultValue="search" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="search" className="font-bold">Search</TabsTrigger>
+                        <TabsTrigger value="settings" className="font-bold">Settings</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="search">
+                        <Search worker={worker} searchResults={searchResults} setSearchResults={setSearchResults} />
+                    </TabsContent>
+                    <TabsContent value="settings">
+                        <Settings />
+                    </TabsContent>
+                </Tabs>
             </div>
-
-            <hr />
-
-            {searchResults && searchResults.length > 0 ?
-                <SearchResultsTable results={searchResults}></SearchResultsTable> : <></>
-
-            }
 
         </div>
     )
