@@ -3,7 +3,14 @@ import { PGlite } from "~dist/electric-sql";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
 
-// TODO: add a deletion expiry
+// TODO: add a deletion expiry logic. configurable; at random, scan which ones are expired and delete. use on delete cascade
+// TODO: fix the content revalidation
+// TODO: stylize popup
+// TODO: add settings page to store state of the model
+// TODO: improve stored embeddings - experiment w different model types
+// TODO: accept "" to get keyword search instead of semantic search
+// TODO: add join to the results of the search
+// TODO: add table to the search results
 
 const DB_STORAGE = "idb://casper"
 let dbInstance;
@@ -52,19 +59,22 @@ export const initSchema = async (db: PGlite) => {
 export interface SearchResult {
     id: number
     content: string,
+    url: string,
     page_id: number,
     prob: number
 }
 
 export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 3): Promise<SearchResult[]> => {
     const res = await db.query(`
-        select id, content, page_id, embedding.embedding <#> $1 as prob from embedding
+        SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob 
+        FROM embedding
 
         -- the inner product is negative, so we negate matchThreshold
-        where embedding.embedding <#> $1 < $2
-
-        order by embedding.embedding <#> $1
-        limit $3
+        LEFT JOIN page 
+        ON page.id = embedding.page_id
+        WHERE embedding.embedding <#> $1 < $2
+        ORDER BY prob
+        LIMIT $3
         `,
         [JSON.stringify(embedding), Number(matchThreshold), Number(limit)]
     );
@@ -73,6 +83,7 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
         id: row.id,
         content: row.content,
         page_id: row.page_id,
+        url: row.url,
         prob: row.prob
     }));
 }
