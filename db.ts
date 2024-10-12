@@ -3,14 +3,12 @@ import { PGlite } from "~dist/electric-sql";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
 
-// TODO: add a deletion expiry logic. configurable; at random, scan which ones are expired and delete. use on delete cascade
 // TODO: fix the content revalidation
-// TODO: stylize popup
 // TODO: add settings page to store state of the model
 // TODO: improve stored embeddings - experiment w different model types
 // TODO: accept "" to get keyword search instead of semantic search
-// TODO: add join to the results of the search
-// TODO: add table to the search results
+// combine the chunks together if too long
+// return highlighted url in yellow as the query param
 
 const DB_STORAGE = "idb://casper"
 let dbInstance;
@@ -92,10 +90,11 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
     }));
 }
 
-export const deletePagesOlderThan = async (db: PGliteWorker) => {
+export const deletePagesOlderThan = async (db: PGliteWorker, numDays: number = 14) => {
+
     const res = await db.query(`
         DELETE FROM page
-        WHERE page.createdAt < NOW() - INTERVAL '1 days'
+        WHERE page.createdAt < NOW() - INTERVAL '${numDays} days'
         RETURNING *;
     `)
 
