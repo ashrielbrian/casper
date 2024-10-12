@@ -95,9 +95,10 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
 export const deletePagesOlderThan = async (db: PGliteWorker) => {
     const res = await db.query(`
         DELETE FROM page
-        WHERE page.createdAt < datetime('now', '-14 days');
+        WHERE page.createdAt < NOW() - INTERVAL '1 days'
+        RETURNING *;
     `)
 
-    console.log("Ran delete check:", res.affectedRows)
+    console.log(`Ran delete: ${res.affectedRows} rows were affected.`)
     return res.affectedRows;
 }
