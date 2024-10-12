@@ -14,6 +14,15 @@ module.exports = {
       },
     },
     extend: {
+      keyframes: {
+        'underline-left-right': {
+          '0%': { width: '0' },
+          '100%': { width: '100%' },
+        },
+      },
+      animation: {
+        'underline-left-right': 'underline-left-right 0.3s ease-out forwards',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
