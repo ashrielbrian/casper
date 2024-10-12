@@ -27,8 +27,6 @@ function IndexPopup() {
             extensions: { vector },
             dataDir: "idb://casper.db"
         });
-
-        console.log("Setting worker in popup page")
         setWorker(newWorker);
     }
 
@@ -59,7 +57,7 @@ function IndexPopup() {
             setIsSearching(true);
             const backgroundResponse = await sendTextChunkToBackground(textToSearch);
 
-            const results = await search(worker, backgroundResponse.embedding, 0.3, 3);
+            const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
 
             console.log("Results of the search:", results);
 
@@ -71,7 +69,7 @@ function IndexPopup() {
 
 
     return (
-        <div className={`p-8 w-[36rem] flex flex-col space-y-2 bg-slate-100 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-40'}`}>
+        <div className={`p-8 w-[40rem] flex flex-col space-y-2 bg-slate-100 ${searchResults && searchResults.length > 0 ? 'h-[42rem]' : 'h-40'}`}>
             <div className="space-y-1">
                 {/* Header section */}
                 <h4 className="font-extrabold text-xl">

@@ -31,13 +31,13 @@ export const SearchResultsTable = ({ results }: { results: SearchResult[] }) => 
             <TableBody>
                 {results.map((res) => (
                     <TableRow key={res.id}>
-                        <TableCell className="font-light">
+                        <TableCell className="font-bold">
                             <a href={res.url} className="relative after:content-[''] after:absolute after:w-0 after:h-[1px] after:bg-current after:bottom-0 after:left-0 hover:after:w-full after:transition-width after:duration-300 after:ease-out">
                                 {extractDomain(res.url)}
                             </a>
                         </TableCell>
                         <TableCell className="text-sm">{res.content}</TableCell>
-                        <TableCell>{res.prob.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{res.prob.toFixed(2)}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
