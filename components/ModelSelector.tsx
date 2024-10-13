@@ -26,7 +26,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ models, existingMo
                     <SelectGroup>
                         <SelectLabel className="text-sm">Models</SelectLabel>
                         {models.map((model) => (
-                            <SelectItem className="text-sm" value={model}>{model}</SelectItem>
+                            <SelectItem key={model} className="text-sm" value={model}>{model}</SelectItem>
                         ))}
                     </SelectGroup>
                 </SelectContent>
