@@ -3,7 +3,7 @@ const { fontFamily } = require("tailwindcss/defaultTheme")
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   mode: "jit",
-  // darkMode: "class",
+  darkMode: "class",
   content: ['./popup.tsx', 'components/**/*.{ts,tsx}'],
   theme: {
     container: {
