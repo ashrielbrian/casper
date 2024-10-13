@@ -101,3 +101,13 @@ export const deletePagesOlderThan = async (db: PGliteWorker, numDays: number = 1
     console.log(`Ran delete: ${res.affectedRows} rows were affected.`)
     return res.affectedRows;
 }
+
+export const saveFilterSites = async (db: PGliteWorker, listOfSites: string[]) => {
+    if (listOfSites.length == 0) {
+        // TODO: delete all
+    } else {
+        // delete all, and then add new
+    }
+}
+
+export const saveModelType = async (db: PGliteWorker, modelType: string) => { }
