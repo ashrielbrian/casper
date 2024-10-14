@@ -132,4 +132,10 @@ export const getFilterSites = async (db: PGliteWorker) => {
     return res.rows.map((m) => m.url)
 }
 
+export const nukeDb = async (db: PGliteWorker) => {
+    console.log("Nuking database. Bye bye.")
+    const res = await db.query("DELETE FROM page")
+    console.log("URLs deleted: ", res.affectedRows);
+}
+
 export const saveModelType = async (db: PGliteWorker, modelType: string) => { }
