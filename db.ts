@@ -51,10 +51,18 @@ export const initSchema = async (db: PGlite) => {
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS filters(
+            url TEXT NOT NULL
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE INDEX IF NOT EXISTS page_created_at_index
         ON page(createdAt);
 
         CREATE INDEX ON embedding USING hnsw (embedding vector_ip_ops);
+        
+        CREATE INDEX IF NOT EXISTS filters_url_index
+        ON filters(url);
 
     `)
 }
@@ -103,11 +111,25 @@ export const deletePagesOlderThan = async (db: PGliteWorker, numDays: number = 1
 }
 
 export const saveFilterSites = async (db: PGliteWorker, listOfSites: string[]) => {
-    if (listOfSites.length == 0) {
-        // TODO: delete all
-    } else {
-        // delete all, and then add new
-    }
+    await db.transaction(async (tx) => {
+        // not performant, but this will have to do for now.
+        listOfSites.forEach(async (siteUrl) => {
+            await tx.query('INSERT INTO filters(url) VALUES($1)', [siteUrl])
+        });
+    })
+}
+export const removeFilterSites = async (db: PGliteWorker, listOfSites: string[]) => {
+    await db.transaction(async (tx) => {
+        // not performant, but this will have to do for now.
+        listOfSites.forEach(async (siteUrl) => {
+            await tx.query('DELETE FROM filters WHERE url = $1', [siteUrl])
+        });
+    })
+}
+
+export const getFilterSites = async (db: PGliteWorker) => {
+    const res = await db.query("SELECT url FROM filters");
+    return res.rows.map((m) => m.url)
 }
 
 export const saveModelType = async (db: PGliteWorker, modelType: string) => { }
