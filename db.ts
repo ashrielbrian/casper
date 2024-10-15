@@ -52,7 +52,7 @@ export const initSchema = async (db: PGlite) => {
         );
 
         CREATE TABLE IF NOT EXISTS filters(
-            url TEXT NOT NULL
+            url TEXT NOT NULL,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -129,7 +129,7 @@ export const removeFilterSites = async (db: PGliteWorker, listOfSites: string[])
 
 export const getFilterSites = async (db: PGliteWorker) => {
     const res = await db.query("SELECT url FROM filters");
-    return res.rows.map((m) => m.url)
+    return res.rows.map((m) => m.url);
 }
 
 export const nukeDb = async (db: PGliteWorker) => {
