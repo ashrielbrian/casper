@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react"
 import { Button } from "./Button"
 import { Card } from "./Card"
 import { type PGliteWorker } from "~dist/electric-sql/worker";
-import { removeFilterSites, saveFilterSites, saveModelType, getFilterSites } from "~db";
+import { removeFilterSites, saveFilterSites, saveModelType, getFilterSites, nukeDb } from "~db";
 import { Label } from "./Label"
 import { ModelSelector } from "./ModelSelector"
 import { SelectTagInput } from "./TagInputs"
+import { DeleteDialogButton } from "./DeleteDialogButton";
 
 const AVAILABLE_MODELS = [
     "Supabase/gte-small",
@@ -24,6 +25,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesToFilter, hasChanged, setHasChanged }) => {
     const [componentSetup, setComponentSetup] = useState(false);
     const [originalSitesToFilter, setOriginalSitesToFilter] = useState([])
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
     useEffect(() => {
 
@@ -90,6 +92,13 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
         }
     }, [sitesToFilter])
 
+    const deleteDb = async () => {
+        if (pg) {
+            await nukeDb(pg);
+            setShowDeleteConfirmation(true);
+        }
+    }
+
     return (
         <Card className="p-4">
             <div className="flex-col space-y-4 justify-center">
@@ -114,7 +123,12 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
                 </div>
                 <div className="flex items-center">
                     <div className="w-1/3"></div>
-                    <Button className="flex-0 font-extrabold" variant="destructive">Clear Database</Button>
+                    <DeleteDialogButton onConfirm={deleteDb}></DeleteDialogButton>
+                    {/* <Button className="flex-0 font-extrabold" variant="destructive">Clear Database</Button> */}
+                </div>
+                <div className="flex">
+                    <div className="w-1/3"></div>
+                    {showDeleteConfirmation ? <p className="text-red-400">Database cleared!</p> : <></>}
                 </div>
             </div>
 
