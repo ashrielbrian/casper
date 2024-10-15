@@ -2,7 +2,6 @@ import { Input } from "~components/Input";
 import { Button } from "~components/Button";
 import { SearchResultsTable } from "~components/SearchResults";
 import { useState } from "react";
-import { Separator } from "./Separator";
 import type { PGliteWorker } from "~dist/electric-sql/worker";
 import { search, type SearchResult } from "~db";
 import { Card } from "./Card";
@@ -25,10 +24,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
         if (worker && textToSearch) {
             setIsSearching(true);
             const backgroundResponse = await sendTextChunkToBackground(textToSearch);
-
             const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
-
-            console.log("Results of the search:", results);
 
             setIsSearching(false);
             setSearchResults(results);
