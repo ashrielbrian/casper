@@ -16,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~components/Tabs";
 function IndexPopup() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([])
     const [worker, setWorker] = useState<PGliteWorker>(null);
+    const [sitesToFilter, setSitesToFilter] = useState([]);
+    const [hasSettingsChanged, setHasSettingsChanged] = useState(false);
 
     const setupWorker = () => {
         const newWorker = new PGliteWorker(
@@ -75,7 +77,7 @@ function IndexPopup() {
                         <Search worker={worker} searchResults={searchResults} setSearchResults={setSearchResults} />
                     </TabsContent>
                     <TabsContent value="settings">
-                        <Settings />
+                        <Settings pg={worker} sitesToFilter={sitesToFilter} setSitesToFilter={setSitesToFilter} hasChanged={hasSettingsChanged} setHasChanged={setHasSettingsChanged} />
                     </TabsContent>
                 </Tabs>
             </div>

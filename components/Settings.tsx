@@ -1,8 +1,8 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Button } from "./Button"
 import { Card } from "./Card"
 import { type PGliteWorker } from "~dist/electric-sql/worker";
-import { saveFilterSites, saveModelType } from "~db";
+import { removeFilterSites, saveFilterSites, saveModelType, getFilterSites } from "~db";
 import { Label } from "./Label"
 import { ModelSelector } from "./ModelSelector"
 import { SelectTagInput } from "./TagInputs"
@@ -22,15 +22,74 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesToFilter, hasChanged, setHasChanged }) => {
+    const [componentSetup, setComponentSetup] = useState(false);
+    const [originalSitesToFilter, setOriginalSitesToFilter] = useState([])
 
-    // const [sitesToFilter, setSitesToFilter] = useState([])
-    const onSettingsSave = () => {
-        // TODO: save to db
+    useEffect(() => {
 
-        saveModelType(pg, "")
-        saveFilterSites(pg, sitesToFilter);
-        setHasChanged(false);
+        if (pg) {
+            const getExistingFilterSites = async () => {
+                const filterSites = await getFilterSites(pg);
+                setOriginalSitesToFilter(filterSites);
+
+                if (sitesToFilter.length == 0) {
+                    setSitesToFilter([...filterSites])
+                }
+            }
+
+            getExistingFilterSites().catch(console.error);
+            setComponentSetup(true);
+        }
+    }, []);
+
+    const updateSites = async () => {
+        const { addedSites, removedSites } = getDifferenceBetweenOldAndNew(originalSitesToFilter, sitesToFilter);
+
+        if (removedSites.size > 0) {
+            await removeFilterSites(pg, Array.from(removedSites));
+        }
+
+        if (addedSites.size > 0) {
+            await saveFilterSites(pg, Array.from(addedSites));
+        }
+
+        setOriginalSitesToFilter([...sitesToFilter]);
+        setSitesToFilter([...sitesToFilter])
     }
+
+    const getDifferenceBetweenOldAndNew = (oldArr: string[], newArr: string[]) => {
+        const oriSites = new Set(oldArr);
+        const newSites = new Set(newArr);
+
+        return {
+            addedSites: newSites.difference(oriSites),
+            removedSites: oriSites.difference(newSites)
+        }
+    }
+
+    const onSettingsSave = async () => {
+
+        // TODO:
+        // saveModelType(pg, "")
+        setHasChanged(false);
+        await updateSites()
+    }
+
+    useEffect(() => {
+        // check if the sites have been updated and changed
+        // we also need to wait for the component to setup as the initial useEffect populates the originalSitesToFilter, otherwise
+        // this if statement executes before the originalSitesToFilter has been populated
+        if (!hasChanged && componentSetup) {
+            console.log("sites to filter has changed. updating..")
+            console.log("ori sites", originalSitesToFilter)
+            console.log("new sites", sitesToFilter)
+            const { addedSites, removedSites } = getDifferenceBetweenOldAndNew(originalSitesToFilter, sitesToFilter);
+            if (addedSites.size > 0 || removedSites.size > 0) {
+                setHasChanged(true);
+            }
+        }
+    }, [sitesToFilter])
+
     return (
         <Card className="p-4">
             <div className="flex-col space-y-4 justify-center">
@@ -60,7 +119,7 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
             </div>
 
             <div id="footer" className="flex flex-row-reverse">
-                <Button onClick={onSettingsSave} disabled={hasChanged}>Save</Button>
+                <Button onClick={onSettingsSave} disabled={!hasChanged}>Save</Button>
             </div>
         </Card>
     )
