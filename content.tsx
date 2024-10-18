@@ -1,4 +1,5 @@
 import React, { useEffect } from "react"
+import { parseChunkHtmlContent } from '~/lib/chunk';
 
 const extractHtmlBody = () => {
     return document.body.outerHTML;
@@ -11,35 +12,14 @@ const isRandomlyBelow = (threshold = 0.05) => {
     return Math.random() <= threshold;
 }
 
-
-const extractHeadersAndParagraphs = (htmlContent: string) => {
-    const MIN_CHAR_LIMIT = 30;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlContent, 'text/html');
-
-    const headers = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    const paragraphs = doc.querySelectorAll('p');
-    const listItems = doc.querySelectorAll('li');
-
-    // Extract the text content of the headers and paragraphs
-    const headerTexts = Array.from(headers).map(header => header.textContent.trim()).filter(header => header.length > MIN_CHAR_LIMIT);
-    const paragraphTexts = Array.from(paragraphs).map(paragraph => paragraph.textContent.trim()).filter(paragraph => paragraph.length > MIN_CHAR_LIMIT);
-    const listItemsTexts = Array.from(listItems).map(items => items.textContent.trim()).filter(items => items.length > MIN_CHAR_LIMIT);
-
-    return {
-        headers: headerTexts,
-        paragraphs: paragraphTexts,
-        listItems: listItemsTexts
-    };
-}
-
 const PlasmoOverlay = () => {
 
     useEffect(() => {
 
         // grab only the headers and paragraphs from the webpage
         const webpageBodyContent = extractHtmlBody();
-        const { headers, paragraphs, listItems } = extractHeadersAndParagraphs(webpageBodyContent);
+        // const { headers, paragraphs, listItems } = extractHeadersAndParagraphs(webpageBodyContent);
+        const chunks = parseChunkHtmlContent(webpageBodyContent);
 
         const processPage = async () => {
             // const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs, ...listItems])
