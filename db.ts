@@ -2,6 +2,7 @@
 import { PGlite } from "~dist/electric-sql";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
+import { zip } from "~lib/utils";
 
 // TODO: fix the content revalidation
 // TODO: accept "" to get keyword search instead of semantic search
@@ -69,6 +70,12 @@ export const initSchema = async (db: PGlite) => {
         CREATE TABLE IF NOT EXISTS filters(
             url TEXT NOT NULL,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS search_results_cache(
+            embedding_id INT REFERENCES embedding(id) ON DELETE CASCADE,
+            search_text TEXT,
+            similarity FLOAT
         );
 
         CREATE INDEX IF NOT EXISTS page_created_at_index
@@ -154,6 +161,46 @@ export const nukeDb = async (db: PGliteWorker) => {
     console.log("Nuking database. Bye bye.")
     const res = await db.query("DELETE FROM page")
     console.log("URLs deleted: ", res.affectedRows);
+}
+
+export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number[], similarities: number[], searchText: string) => {
+    if (searchResultIds.length > 0) {
+        await db.transaction(async (tx) => {
+            await tx.query("DELETE FROM search_results_cache;")
+
+            for (let [_, sid, sim] of zip(searchResultIds, similarities)) {
+                await tx.query(`INSERT INTO search_results_cache(embedding_id, search_text, similarity) VALUES ($1, $2, $3)`, [sid, searchText, sim])
+
+            }
+            console.log("Updated search cache");
+        });
+        const res = await db.query("SELECT * FROM search_results_cache")
+        console.log(res.rows)
+    }
+}
+
+export const deleteStoreCache = async (db: PGliteWorker) => {
+    await db.exec(`DELETE FROM search_results_cache;`)
+}
+
+export const getResultsCache = async (db: PGliteWorker) => {
+    const res = await db.query(`
+        SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id
+        FROM search_results_cache AS src
+        LEFT JOIN embedding emb ON emb.id = src.embedding_id
+        LEFT JOIN page ON page.id = emb.page_id;
+
+    `);
+
+    console.log("get search results cache", res.rows)
+    return res.rows.map((row: any) => ({
+        id: row.id,
+        content: row.content,
+        page_id: row.page_id,
+        url: row.url,
+        prob: row.prob,
+        chunk_tag_id: row.chunk_tag_id
+    }));
 }
 
 export const saveModelType = async (db: PGliteWorker, modelType: string) => { }
