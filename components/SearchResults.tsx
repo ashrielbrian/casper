@@ -1,22 +1,8 @@
+import { extractDomain } from "~lib/utils"
 import { Table, TableCaption, TableHeader, TableRow, TableHead, TableCell, TableBody } from "./Table"
 import { type SearchResult } from "~db"
 
 export const SearchResultsTable = ({ results }: { results: SearchResult[] }) => {
-    const extractDomain = (url: string) => {
-        // Create a URL object to parse the URL
-        const parsedUrl = new URL(url);
-
-        // Extract the hostname from the parsed URL
-        let domain = parsedUrl.hostname;
-
-        // Remove 'www.' if present
-        if (domain.startsWith('www.')) {
-            domain = domain.slice(4);
-        }
-
-        return domain;
-    }
-
 
     return (
         <Table>
