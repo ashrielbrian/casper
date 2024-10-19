@@ -36,8 +36,13 @@ export async function getDB() {
     return dbInstance;
 }
 
+export const countRows = async (db, table) => {
+    const res = await db.query(`SELECT COUNT(*) FROM ${table};`);
+    return res.rows[0].count;
+};
+
 export const initSchema = async (db: PGlite) => {
-    return await db.exec(`
+    await db.exec(`
         --DROP TABLE IF EXISTS embedding;
         --DROP TABLE IF EXISTS page;
 
@@ -72,12 +77,17 @@ export const initSchema = async (db: PGlite) => {
         
         CREATE INDEX IF NOT EXISTS filters_url_index
         ON filters(url);
-
-        INSERT INTO filters (url)
-        VALUES ('youtube.com'), ('facebook.com'), ('google.com'), ('x.com')
-        ON CONFLICT DO NOTHING;
-
     `)
+
+    if (await countRows(db, "filters") === 0) {
+        await db.exec(`
+            INSERT INTO filters(url)
+            VALUES ('facebook.com'), ('x.com'), ('google.com'), ('youtube.com')
+            ON CONFLICT DO NOTHING;
+        `)
+    }
+
+    return;
 }
 
 export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
