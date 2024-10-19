@@ -1,10 +1,16 @@
 import { AutoTokenizer } from "@xenova/transformers"
-interface Node {
-    content: string,
-    tag: string,
+
+export interface Node {
+    content: string
+    tag: string
     id: string
 }
 
+export interface Chunk {
+    content: string
+    len: number
+    id: string
+}
 export const parseChunkHtmlContent = async (htmlContent: string) => {
 
     const MIN_CHAR_LIMIT = 20;
@@ -20,7 +26,8 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
             nodes.push({
                 content: node.textContent.trim(),
                 tag: node.tagName.toLowerCase(),
-                id: node.id
+                // if there is no id attached to this node, use a part of its text content
+                id: node.id ? node.id : `:~:text=${encodeURIComponent(node.textContent.trim().slice(0, 100))}`
             });
         }
 
@@ -35,12 +42,11 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
     const filteredNodes = nodes.filter(node => headerTags.includes(node.tag) || node.content.length > MIN_CHAR_LIMIT)
     console.log(filteredNodes)
 
-    const chunkContents = async (nodes: Node[]) => {
-        // TODO: all nodes before chunking should already have an id so that it is searchable later, i.e. node.id is defined.
-        const tokenizer = await AutoTokenizer.from_pretrained('Xenova/all-MiniLM-L6-v2');
+    const chunkContents = async (nodes: Node[], tokenizerType = 'Xenova/all-MiniLM-L6-v2') => {
+        const tokenizer = await AutoTokenizer.from_pretrained(tokenizerType);
 
         const CHUNK_SIZE = 256;
-        const chunks = [];
+        const chunks: Chunk[] = [];
         let curr_chunk = "";
         let curr_chunk_size = 0;
         let curr_id = null;
@@ -52,9 +58,11 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
             if (curr_chunk_size + node_length < CHUNK_SIZE) {
                 curr_chunk += ` ${node.content}`;
                 curr_chunk_size += node_length;
-                curr_id = node.id
+                // TODO: uses the most recent node's id. can be improved
+                curr_id = node.id ? node.id : curr_id
             } else {
-
+                // adding the current node would exceed CHUNK_SIZE. add the existing chunk, 
+                // and deal with the current node in the next iteration
                 if (curr_chunk.length > 0) {
                     chunks.push({
                         content: curr_chunk,
@@ -63,7 +71,7 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
                     })
                 }
 
-                curr_id = node.id
+                curr_id = node.id ? node.id : curr_id
                 curr_chunk_size = node_length;
                 curr_chunk = node.content;
             }
