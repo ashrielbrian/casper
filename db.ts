@@ -6,6 +6,15 @@ import { vector } from '~dist/electric-sql/vector';
 // TODO: fix the content revalidation
 // TODO: accept "" to get keyword search instead of semantic search
 
+export interface SearchResult {
+    id: number
+    content: string,
+    url: string,
+    page_id: number,
+    chunk_tag_id: string,
+    prob: number
+}
+
 const DB_STORAGE = "idb://casper"
 let dbInstance;
 
@@ -29,6 +38,9 @@ export async function getDB() {
 
 export const initSchema = async (db: PGlite) => {
     return await db.exec(`
+        --DROP TABLE IF EXISTS embedding;
+        --DROP TABLE IF EXISTS page;
+
         CREATE EXTENSION IF NOT EXISTS vector;
 
         CREATE TABLE IF NOT EXISTS page(
@@ -63,17 +75,10 @@ export const initSchema = async (db: PGlite) => {
 
     `)
 }
-export interface SearchResult {
-    id: number
-    content: string,
-    url: string,
-    page_id: number,
-    prob: number
-}
 
 export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
     const res = await db.query(`
-        SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob 
+        SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob, embedding.chunk_tag_id
         FROM embedding
 
         -- the inner product is negative, so we negate matchThreshold
@@ -91,7 +96,8 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
         content: row.content,
         page_id: row.page_id,
         url: row.url,
-        prob: row.prob
+        prob: row.prob,
+        chunk_tag_id: row.chunk_tag_id
     }));
 }
 

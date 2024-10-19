@@ -25,7 +25,6 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
             setIsSearching(true);
             const backgroundResponse = await sendTextChunkToBackground(textToSearch);
             const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
-
             setIsSearching(false);
             setSearchResults(results);
         }

@@ -32,11 +32,16 @@ export const SearchResultsTable = ({ results }: { results: SearchResult[] }) => 
                 {results.map((res) => (
                     <TableRow key={res.id}>
                         <TableCell className="font-bold">
-                            <a href={res.url} className="relative after:content-[''] after:absolute after:w-0 after:h-[1px] after:bg-current after:bottom-0 after:left-0 hover:after:w-full after:transition-width after:duration-300 after:ease-out">
+                            <a href={res.url} className="link-underline-animation">
                                 {extractDomain(res.url)}
                             </a>
                         </TableCell>
-                        <TableCell className="text-sm">{res.content}</TableCell>
+                        <TableCell className="text-sm">
+                            <a href={`${res.url}#${res.chunk_tag_id}`} className="link-underline-animation">
+                                {res.content.slice(0, 100) + "..."}
+
+                            </a>
+                        </TableCell>
                         <TableCell className="text-right">{res.prob.toFixed(2)}</TableCell>
                     </TableRow>
                 ))}
