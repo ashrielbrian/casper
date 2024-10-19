@@ -4,6 +4,7 @@ import { getDB, search, deletePagesOlderThan, type SearchResult } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
 import { PGliteWorker } from "~dist/electric-sql/worker";
 import type { Chunk } from "~lib/chunk";
+import { MODEL_TYPE } from "~lib/chunk";
 
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
@@ -26,6 +27,7 @@ const storeEmbeddings = async (worker: PGliteWorker, urlId: string, chunk: Chunk
 
 const urlIsPresentOrInDatetimeRange = async (worker: PGliteWorker, url: string, withinDays: number = 3) => {
     // fetch from db whether url exists and/or is within the required days
+    // TODO: filter out URL for withinDays
     let res = await worker.query("SELECT id, createdAt FROM page WHERE url = $1", [url])
 
     if (res.rows.length > 0) {
@@ -42,7 +44,7 @@ const urlIsPresentOrInDatetimeRange = async (worker: PGliteWorker, url: string, 
 class PipelineSingleton {
     // TODO: is it possible to ensure there's only a single instance of transformers Pipeline, and each worker reuses the same Pipeline?
     static task = "feature-extraction" as PipelineType;
-    static model = "Supabase/gte-small";
+    static model = MODEL_TYPE;
     static instance = null;
 
     static async getInstance(progress_callback = null) {
@@ -63,8 +65,8 @@ const getLLMPipeline = async () => {
     });
 }
 
-const runInference = async (pipeline, chunk: Chunk) => {
-    const output = await pipeline(chunk.content, {
+const runInference = async (pipeline, chunk: string) => {
+    const output = await pipeline(chunk, {
         pooling: "mean",
         normalize: true,
     });
@@ -105,7 +107,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             console.log(`Here is a sample chunks: ${textChunks[0]}`);
             for (let chunk of textChunks) {
 
-                let embedding = await runInference(pipeline, chunk);
+                let embedding = await runInference(pipeline, chunk.content);
                 console.log("Generated embedding: ", embedding.length)
 
                 await storeEmbeddings(pg, urlId, chunk, embedding);
