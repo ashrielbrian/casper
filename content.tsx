@@ -5,8 +5,6 @@ const extractHtmlBody = () => {
     return document.body.outerHTML;
 }
 
-const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => a.map((ele, idx) => [idx, ele, b[idx]])
-
 const isRandomlyBelow = (threshold = 0.05) => {
     // returns true (threshold * 100)% of the time
     return Math.random() <= threshold;
