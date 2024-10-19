@@ -45,6 +45,7 @@ export const initSchema = async (db: PGlite) => {
     await db.exec(`
         --DROP TABLE IF EXISTS embedding;
         --DROP TABLE IF EXISTS page;
+        --DROP TABLE IF EXISTS filters;
 
         CREATE EXTENSION IF NOT EXISTS vector;
 

@@ -40,7 +40,7 @@ export function DeleteDialogButton({ onConfirm }: DeleteConfirmationDialogProps)
                 </DialogHeader>
                 <DialogFooter className="sm:justify-start">
                     <Button onClick={handleConfirm} variant="destructive">
-                        Yes, byebye database
+                        Yes, delete my past history
                     </Button>
                     <DialogClose asChild>
                         <Button variant="secondary">

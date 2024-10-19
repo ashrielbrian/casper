@@ -9,8 +9,8 @@ import { SelectTagInput } from "./TagInputs"
 import { DeleteDialogButton } from "./DeleteDialogButton";
 
 const AVAILABLE_MODELS = [
-    "Supabase/gte-small",
-    "Supabase/gte-large",
+    // "Supabase/gte-small",
+    // "Supabase/gte-large",
     'Xenova/all-MiniLM-L6-v2'
 ]
 
@@ -113,10 +113,10 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
                         className="flex-1"
                         value={sitesToFilter}
                         options={[
-                            { label: 'youtube.com', value: 'youtube.com' },
-                            { label: 'google.com', value: 'google.com' },
-                            { label: 'facebook.com', value: 'facebook.com' },
-                            { label: 'x.com', value: 'x.com' },
+                            // { label: 'youtube.com', value: 'youtube.com' },
+                            // { label: 'google.com', value: 'google.com' },
+                            // { label: 'facebook.com', value: 'facebook.com' },
+                            // { label: 'x.com', value: 'x.com' },
                         ]}
                         onChange={setSitesToFilter}
                     />
