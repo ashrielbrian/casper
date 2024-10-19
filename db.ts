@@ -4,11 +4,7 @@ import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
 
 // TODO: fix the content revalidation
-// TODO: add settings page to store state of the model
-// TODO: improve stored embeddings - experiment w different model types
 // TODO: accept "" to get keyword search instead of semantic search
-// combine the chunks together if too long
-// return highlighted url in yellow as the query param
 
 const DB_STORAGE = "idb://casper"
 let dbInstance;
@@ -48,6 +44,7 @@ export const initSchema = async (db: PGlite) => {
             page_id INT REFERENCES page(id) ON DELETE CASCADE,
             content TEXT NOT NULL,
             embedding vector(384),
+            chunk_tag_id TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
