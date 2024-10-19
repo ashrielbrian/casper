@@ -3,6 +3,7 @@ export { }
 import { getDB, search, deletePagesOlderThan, type SearchResult } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
 import { PGliteWorker } from "~dist/electric-sql/worker";
+import type { Chunk } from "~lib/chunk";
 
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
@@ -13,11 +14,11 @@ const getUrlId = async (worker: PGliteWorker, url: string) => {
     return res.rows.length > 0 ? res.rows[0].id : null
 }
 
-const storeEmbeddings = async (worker: PGliteWorker, urlId: string, chunk: string, embedding: number[]) => {
+const storeEmbeddings = async (worker: PGliteWorker, urlId: string, chunk: Chunk, embedding: number[]) => {
 
     let embStr = `'[${embedding}]'`
-    const insertRes = await worker.query(`INSERT INTO embedding (page_id, content, embedding) VALUES ($1, $2, ${embStr});`,
-        [urlId, chunk]
+    const insertRes = await worker.query(`INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, ${embStr}, $3);`,
+        [urlId, chunk.content, chunk.id]
     );
 
     console.log("Inserted embedding", insertRes)
@@ -62,8 +63,8 @@ const getLLMPipeline = async () => {
     });
 }
 
-const runInference = async (pipeline, chunk: string) => {
-    const output = await pipeline(chunk, {
+const runInference = async (pipeline, chunk: Chunk) => {
+    const output = await pipeline(chunk.content, {
         pooling: "mean",
         normalize: true,
     });
@@ -85,7 +86,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     // check the URL - if it exists, check if age of the URL. if older than a day, delete the old entries, chunk new and get new embs
     if (message.type === "process_page" && pg) {
 
-        const { type, url, textChunks } = message;
+        const { type, url, textChunks }: { type: string, url: string, textChunks: Chunk[] } = message;
 
         if (await urlIsPresentOrInDatetimeRange(pg, url)) {
             // URL exists OR is still valid. Do not process, and return.
