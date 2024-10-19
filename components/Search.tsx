@@ -1,10 +1,11 @@
 import { Input } from "~components/Input";
 import { Button } from "~components/Button";
 import { SearchResultsTable } from "~components/SearchResults";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { PGliteWorker } from "~dist/electric-sql/worker";
-import { search, type SearchResult } from "~db";
+import { deleteStoreCache, getResultsCache, search, storeSearchCache, type SearchResult } from "~db";
 import { Card } from "./Card";
+import { Trash } from "lucide-react";
 
 interface SearchProps {
     worker: PGliteWorker;
@@ -30,7 +31,43 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
         }
     }
 
+    useEffect(() => {
+        const getCache = async () => {
+            const searchResults = await getResultsCache(worker);
+            console.log(searchResults)
+            if (searchResults && searchResults.length > 0) {
+                setSearchResults(searchResults);
+            }
+        }
+
+        if (worker) {
+            getCache().catch(console.error);
+        }
+    }, [worker])
+
+    useEffect(() => {
+        if (searchResults && searchResults.length > 0) {
+            const cacheResults = async () => {
+                await storeSearchCache(
+                    worker,
+                    searchResults.map(res => res.id),
+                    searchResults.map(res => res.prob),
+                    textToSearch
+                );
+            }
+
+            cacheResults().catch(console.error)
+        }
+    }, [searchResults])
+
+    const clearSearchResults = async () => {
+        await deleteStoreCache(worker)
+        setSearchResults([])
+    }
+
     return (
+        // TODO: Add "No search results..."
+        // TODO: add cache of search results
         <Card className="p-4">
             {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
             <div className="relative -mx-8 px-8 py-4 space-x-2 flex items-center">
@@ -40,8 +77,18 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
             </div>
 
             {searchResults && searchResults.length > 0 ?
-                <SearchResultsTable results={searchResults}></SearchResultsTable> : <></>
+                <div className="space-y-2">
+                    <SearchResultsTable results={searchResults}></SearchResultsTable>
+                    <div className="flex flex-row-reverse">
+                        <Button variant="outline" size="icon" className="font-semibold" onClick={clearSearchResults}>
+                            <Trash size={16} />
+                        </Button>
+                    </div>
+                </div>
+                : <></>
             }
+
+
         </Card>
     )
 }
