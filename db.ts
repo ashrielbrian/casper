@@ -73,6 +73,10 @@ export const initSchema = async (db: PGlite) => {
         CREATE INDEX IF NOT EXISTS filters_url_index
         ON filters(url);
 
+        INSERT INTO filters (url)
+        VALUES ('youtube.com'), ('facebook.com'), ('google.com'), ('x.com')
+        ON CONFLICT DO NOTHING;
+
     `)
 }
 
