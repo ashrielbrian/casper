@@ -1,5 +1,5 @@
 import React, { useEffect } from "react"
-import { parseChunkHtmlContent } from '~/lib/chunk';
+import { parseChunkHtmlContent, type Chunk } from '~/lib/chunk';
 
 const extractHtmlBody = () => {
     return document.body.outerHTML;
@@ -16,14 +16,12 @@ const PlasmoOverlay = () => {
 
     useEffect(() => {
 
-        // grab only the headers and paragraphs from the webpage
         const webpageBodyContent = extractHtmlBody();
-        // const { headers, paragraphs, listItems } = extractHeadersAndParagraphs(webpageBodyContent);
-        const chunks = parseChunkHtmlContent(webpageBodyContent);
 
         const processPage = async () => {
-            // const backgroundResponse = await processPageInBackground(location.href, [...headers, ...paragraphs, ...listItems])
-            // console.log("Page has been processed. Background response: ", backgroundResponse)
+            const chunks = await parseChunkHtmlContent(webpageBodyContent);
+            const backgroundResponse = await processPageInBackground(location.href, chunks)
+            console.log("Page has been processed. Background response: ", backgroundResponse)
         }
 
         const cleanUp = async () => {
@@ -45,8 +43,8 @@ const cleanUpUrlEmbeddings = async () => {
     return await chrome.runtime.sendMessage({ type: "clean_up" })
 }
 
-export const processPageInBackground = async (url: string, webHeadersAndParas: string[]) => {
-    return await chrome.runtime.sendMessage({ type: "process_page", url, textChunks: webHeadersAndParas })
+export const processPageInBackground = async (url: string, chunks: Chunk[]) => {
+    return await chrome.runtime.sendMessage({ type: "process_page", url, textChunks: chunks })
 }
 
 export default PlasmoOverlay
