@@ -80,3 +80,9 @@
         font-feature-settings: "rlig" 1, "calt" 1;
     }
 }
+
+@layer components {
+    .link-underline-animation {
+        @apply relative after:content-[''] after:absolute after:w-0 after:h-[1px] after:bg-current after:bottom-0 after:left-0 hover:after:w-full after:transition-[width] after:duration-300 after:ease-out;
+    }
+}
