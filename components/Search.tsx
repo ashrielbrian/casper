@@ -6,6 +6,7 @@ import type { PGliteWorker } from "~dist/electric-sql/worker";
 import { deleteStoreCache, getSearchResultsCache, search, storeSearchCache, type SearchResult } from "~db";
 import { Card } from "./Card";
 import { Trash } from "lucide-react";
+import { Spinner } from "./Spinner";
 
 interface SearchProps {
     worker: PGliteWorker;
@@ -61,14 +62,13 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }, [searchResults])
 
     const clearSearchResults = async () => {
-        await deleteStoreCache(worker)
         setSearchResults([])
+        await deleteStoreCache(worker)
     }
 
     return (
         // TODO: Add "No search results..."
-        // TODO: add cache of search results
-        // TODO: add spinning button
+        // TODO: Animate the deletion and closing of the table
         <Card className="p-4">
             {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
             <div className="relative -mx-8 px-8 py-4 space-x-2 flex items-center">
@@ -76,6 +76,12 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
                 <Input type="text" className="flex-grow" value={textToSearch} onChange={(e) => setTextToSearch(e.target.value)} placeholder="Remind me what websites I've visited.." />
                 <Button onClick={searchPastPages} disabled={!textToSearch || isSearching}> Search</Button>
             </div>
+
+            {
+                isSearching && (
+                    <Spinner />
+                )
+            }
 
             {searchResults && searchResults.length > 0 ?
                 <div className="space-y-2">
@@ -88,8 +94,6 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
                 </div>
                 : <></>
             }
-
-
         </Card>
     )
 }

@@ -183,13 +183,12 @@ export const deleteStoreCache = async (db: PGliteWorker) => {
     await db.exec(`DELETE FROM search_results_cache;`)
 }
 
-export const getResultsCache = async (db: PGliteWorker) => {
+export const getSearchResultsCache = async (db: PGliteWorker) => {
     const res = await db.query(`
         SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id
         FROM search_results_cache AS src
         LEFT JOIN embedding emb ON emb.id = src.embedding_id
         LEFT JOIN page ON page.id = emb.page_id;
-
     `);
 
     console.log("get search results cache", res.rows)

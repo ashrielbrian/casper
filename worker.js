@@ -4,7 +4,6 @@ import { getDB } from "~db";
 
 worker({
     async init() {
-
         const pg = await getDB();
         return pg;
     },
