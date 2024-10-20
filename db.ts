@@ -2,7 +2,8 @@
 import { PGlite } from "~dist/electric-sql";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
-import { zip } from "~lib/utils";
+import { extractDomain, zip } from "~lib/utils";
+import type { Chunk } from "~lib/chunk";
 
 // TODO: fix the content revalidation
 // TODO: accept "" to get keyword search instead of semantic search
@@ -98,6 +99,38 @@ export const initSchema = async (db: PGlite) => {
     return;
 }
 
+export const storeEmbeddings = async (db: PGliteWorker, urlId: string, chunk: Chunk, embedding: number[]) => {
+
+    let embStr = `'[${embedding}]'`
+    const insertRes = await db.query(`INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, ${embStr}, $3);`,
+        [urlId, chunk.content, chunk.id]
+    );
+
+    console.log("Inserted embedding", insertRes)
+}
+
+export const urlIsPresentOrInDatetimeRange = async (db: PGliteWorker, url: string, withinDays: number = 3) => {
+    // fetch from db whether url exists and/or is within the required days
+    // TODO: filter out URL for withinDays
+    let res = await db.query("SELECT id, createdAt FROM page WHERE url = $1", [url])
+    let filterSites = await getFilterSites(db);
+
+    if (filterSites.includes(extractDomain(url))) {
+        console.log("Skipping processing this site as it is in the filtered sites list.")
+        return true;
+    }
+
+    if (res.rows.length > 0) {
+        console.log(`url exist ${url} of rows: ${res.rows}`)
+        return true;
+
+    } else {
+        let out = await db.query("INSERT INTO page (url, title) VALUES ($1, $2)", [url, "test"]);
+        console.log("Inserted into pages", out.affectedRows)
+    }
+    return false;
+}
+
 export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
     const res = await db.query(`
         SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob, embedding.chunk_tag_id
@@ -164,7 +197,8 @@ export const nukeDb = async (db: PGliteWorker) => {
 }
 
 export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number[], similarities: number[], searchText: string) => {
-    if (searchResultIds.length > 0) {
+    if (searchResultIds.length > 0 && searchText.length > 0) {
+        console.log("inserting search text ---> ", searchText)
         await db.transaction(async (tx) => {
             await tx.query("DELETE FROM search_results_cache;")
 
@@ -174,8 +208,6 @@ export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number
             }
             console.log("Updated search cache");
         });
-        const res = await db.query("SELECT * FROM search_results_cache")
-        console.log(res.rows)
     }
 }
 
@@ -185,21 +217,24 @@ export const deleteStoreCache = async (db: PGliteWorker) => {
 
 export const getSearchResultsCache = async (db: PGliteWorker) => {
     const res = await db.query(`
-        SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id
+        SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id, src.search_text
         FROM search_results_cache AS src
         LEFT JOIN embedding emb ON emb.id = src.embedding_id
         LEFT JOIN page ON page.id = emb.page_id;
     `);
 
     console.log("get search results cache", res.rows)
-    return res.rows.map((row: any) => ({
-        id: row.id,
-        content: row.content,
-        page_id: row.page_id,
-        url: row.url,
-        prob: row.prob,
-        chunk_tag_id: row.chunk_tag_id
-    }));
+    return {
+        cache: res.rows.map((row: any) => ({
+            id: row.id,
+            content: row.content,
+            page_id: row.page_id,
+            url: row.url,
+            prob: row.prob,
+            chunk_tag_id: row.chunk_tag_id
+        })),
+        searchText: res.rows.length > 0 ? res.rows[0].search_text : null
+    }
 }
 
 export const saveModelType = async (db: PGliteWorker, modelType: string) => { }

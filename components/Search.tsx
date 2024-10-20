@@ -18,6 +18,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     const [isSearching, setIsSearching] = useState(false);
     const [noSearchResults, setNoSearchResults] = useState(false);
     const [textToSearch, setTextToSearch] = useState("");
+    const [prevSearchedText, setPrevSearchText] = useState("");
 
     const sendTextChunkToBackground = async (chunk: string) => {
         return await chrome.runtime.sendMessage({ type: "get_embedding", chunk })
@@ -26,6 +27,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     const searchPastPages = async () => {
         if (worker && textToSearch) {
             setIsSearching(true);
+            setPrevSearchText("");
             const backgroundResponse = await sendTextChunkToBackground(textToSearch);
             const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
 
@@ -41,9 +43,12 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
 
     useEffect(() => {
         const getCache = async () => {
-            const cache = await getSearchResultsCache(worker);
+            const { cache, searchText } = await getSearchResultsCache(worker);
+            console.log("cache", cache)
+            console.log("searchText", searchText)
             if (cache && cache.length > 0) {
                 setSearchResults(cache);
+                setPrevSearchText(searchText);
             }
         }
 
@@ -54,7 +59,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
 
     useEffect(() => {
         console.log("SEARCH RESULTS CHANGED!", searchResults)
-        if (searchResults && searchResults.length > 0) {
+        if (searchResults && searchResults.length > 0 && textToSearch) {
             const cacheResults = async () => {
                 await storeSearchCache(
                     worker,
@@ -69,6 +74,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }, [searchResults])
 
     const clearSearchResults = async () => {
+        setPrevSearchText("")
         setSearchResults([])
         await deleteStoreCache(worker)
     }
@@ -99,6 +105,11 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
 
             {searchResults && searchResults.length > 0 ?
                 <div className="space-y-2">
+                    {prevSearchedText && (
+                        <div className="p-2">
+                            <p className="text-slate-500 text-xs">Search results for `{prevSearchedText}`</p>
+                        </div>
+                    )}
                     <SearchResultsTable results={searchResults}></SearchResultsTable>
                     <div className="flex flex-row-reverse">
                         <Button variant="outline" size="icon" className="font-semibold" onClick={clearSearchResults}>
