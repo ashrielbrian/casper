@@ -16,6 +16,7 @@ interface SearchProps {
 
 export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearchResults }) => {
     const [isSearching, setIsSearching] = useState(false);
+    const [noSearchResults, setNoSearchResults] = useState(false);
     const [textToSearch, setTextToSearch] = useState("");
 
     const sendTextChunkToBackground = async (chunk: string) => {
@@ -27,8 +28,14 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
             setIsSearching(true);
             const backgroundResponse = await sendTextChunkToBackground(textToSearch);
             const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
+
+            if (results.length === 0) {
+                setNoSearchResults(true);
+            } else {
+                setNoSearchResults(false);
+                setSearchResults(results);
+            }
             setIsSearching(false);
-            setSearchResults(results);
         }
     }
 
@@ -67,7 +74,6 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }
 
     return (
-        // TODO: Add "No search results..."
         // TODO: Animate the deletion and closing of the table
         <Card className="p-4">
             {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
@@ -80,6 +86,14 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
             {
                 isSearching && (
                     <Spinner />
+                )
+            }
+
+            {
+                noSearchResults && (
+                    <div>
+                        <p className="text-slate-500">No results found..</p>
+                    </div>
                 )
             }
 
