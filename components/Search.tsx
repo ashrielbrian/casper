@@ -3,7 +3,7 @@ import { Button } from "~components/Button";
 import { SearchResultsTable } from "~components/SearchResults";
 import { useEffect, useState } from "react";
 import type { PGliteWorker } from "~dist/electric-sql/worker";
-import { deleteStoreCache, getResultsCache, search, storeSearchCache, type SearchResult } from "~db";
+import { deleteStoreCache, getSearchResultsCache, search, storeSearchCache, type SearchResult } from "~db";
 import { Card } from "./Card";
 import { Trash } from "lucide-react";
 
@@ -33,10 +33,9 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
 
     useEffect(() => {
         const getCache = async () => {
-            const searchResults = await getResultsCache(worker);
-            console.log(searchResults)
-            if (searchResults && searchResults.length > 0) {
-                setSearchResults(searchResults);
+            const cache = await getSearchResultsCache(worker);
+            if (cache && cache.length > 0) {
+                setSearchResults(cache);
             }
         }
 
@@ -46,6 +45,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }, [worker])
 
     useEffect(() => {
+        console.log("SEARCH RESULTS CHANGED!", searchResults)
         if (searchResults && searchResults.length > 0) {
             const cacheResults = async () => {
                 await storeSearchCache(
@@ -68,6 +68,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     return (
         // TODO: Add "No search results..."
         // TODO: add cache of search results
+        // TODO: add spinning button
         <Card className="p-4">
             {/* This child div is positioned relative to the parent, with negative margin to make it span full-width, effectively negating its parent's padding */}
             <div className="relative -mx-8 px-8 py-4 space-x-2 flex items-center">
