@@ -1,11 +1,10 @@
 export { }
 
-import { getDB, search, deletePagesOlderThan, type SearchResult, getFilterSites } from "~db";
+import { getDB, deletePagesOlderThan, storeEmbeddings, urlIsPresentOrInDatetimeRange } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
 import { PGliteWorker } from "~dist/electric-sql/worker";
 import type { Chunk } from "~lib/chunk";
 import { MODEL_TYPE } from "~lib/chunk";
-import { extractDomain } from "~lib/utils";
 
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
@@ -14,38 +13,6 @@ const getUrlId = async (worker: PGliteWorker, url: string) => {
     let res = await worker.query(`SELECT id FROM page WHERE url = $1`, [url]);
     console.log("URL ID: ", res.rows[0]);
     return res.rows.length > 0 ? res.rows[0].id : null
-}
-
-const storeEmbeddings = async (worker: PGliteWorker, urlId: string, chunk: Chunk, embedding: number[]) => {
-
-    let embStr = `'[${embedding}]'`
-    const insertRes = await worker.query(`INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, ${embStr}, $3);`,
-        [urlId, chunk.content, chunk.id]
-    );
-
-    console.log("Inserted embedding", insertRes)
-}
-
-const urlIsPresentOrInDatetimeRange = async (worker: PGliteWorker, url: string, withinDays: number = 3) => {
-    // fetch from db whether url exists and/or is within the required days
-    // TODO: filter out URL for withinDays
-    let res = await worker.query("SELECT id, createdAt FROM page WHERE url = $1", [url])
-    let filterSites = await getFilterSites(worker);
-
-    if (filterSites.includes(extractDomain(url))) {
-        console.log("Skipping processing this site as it is in the filtered sites list.")
-        return true;
-    }
-
-    if (res.rows.length > 0) {
-        console.log(`url exist ${url} of rows: ${res.rows}`)
-        return true;
-
-    } else {
-        let out = await worker.query("INSERT INTO page (url, title) VALUES ($1, $2)", [url, "test"]);
-        console.log("Inserted into pages", out.affectedRows)
-    }
-    return false;
 }
 
 class PipelineSingleton {
