@@ -1,6 +1,6 @@
 export { }
 
-import { getDB, deletePagesOlderThan, storeEmbeddings, urlIsPresentOrInDatetimeRange } from "~db";
+import { getDB, getUrlId, lockAndRunPglite, deletePagesOlderThan, storeEmbeddings, urlIsPresentOrInDatetimeRange } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
 import { PGliteWorker } from "~dist/electric-sql/worker";
 import type { Chunk } from "~lib/chunk";
@@ -8,12 +8,6 @@ import { MODEL_TYPE } from "~lib/chunk";
 
 // IMPORTANT: see this issue https://github.com/microsoft/onnxruntime/issues/14445#issuecomment-1625861446
 env.backends.onnx.wasm.numThreads = 1;
-
-const getUrlId = async (worker: PGliteWorker, url: string) => {
-    let res = await worker.query(`SELECT id FROM page WHERE url = $1`, [url]);
-    console.log("URL ID: ", res.rows[0]);
-    return res.rows.length > 0 ? res.rows[0].id : null
-}
 
 class PipelineSingleton {
     // TODO: is it possible to ensure there's only a single instance of transformers Pipeline, and each worker reuses the same Pipeline?
@@ -55,20 +49,27 @@ const deleteIfUrlIsExpired = async (worker: PGliteWorker) => {
 }
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    const pg = await getDB();
+    // const pg = await getDB();
+    // const pg = getWorker();
+
     console.log(`Message is of type: ${message.type}`);
 
 
     // check the URL - if it exists, check if age of the URL. if older than a day, delete the old entries, chunk new and get new embs
-    if (message.type === "process_page" && pg) {
+    if (message.type === "process_page") {
 
         const { type, url, textChunks }: { type: string, url: string, textChunks: Chunk[] } = message;
 
-        if (await urlIsPresentOrInDatetimeRange(pg, url)) {
+        const urlIsPresent = await lockAndRunPglite(urlIsPresentOrInDatetimeRange, { url });
+
+        console.log("got back return from lock return value:", urlIsPresent)
+
+        if (urlIsPresent) {
             // URL exists OR is still valid. Do not process, and return.
             sendResponse({ ok: true, error: null, msg: `URL ${url} has been processed before. Skipping...` })
         } else {
-            const urlId = await getUrlId(pg, url);
+            const urlId = await lockAndRunPglite(getUrlId, { url });
+            console.log("got back return from lock return value:", urlId)
             const pipeline = await getLLMPipeline();
 
             console.log(`Background received type '${type}', at ${url} with ${textChunks.length} chunks.`);
@@ -79,13 +80,18 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             }
 
             console.log(`Here is a sample chunks: ${textChunks[0]}`);
-            for (let chunk of textChunks) {
 
-                let embedding = await runInference(pipeline, chunk.content);
-                console.log("Generated embedding: ", embedding.length)
+            navigator.locks.request("pglite", async (lock) => {
+                let pg = await getDB()
+                for (let chunk of textChunks) {
 
-                await storeEmbeddings(pg, urlId, chunk, embedding);
-            }
+                    let embedding = await runInference(pipeline, chunk.content);
+                    console.log("Generated embedding: ", embedding.length)
+
+                    await storeEmbeddings(pg, urlId, chunk, embedding);
+                }
+            })
+
             sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
         }
 
@@ -98,7 +104,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
         sendResponse({ ok: true, error: null, embedding })
     } else if (message.type === "clean_up") {
-        await deleteIfUrlIsExpired(pg);
+        await lockAndRunPglite(deleteIfUrlIsExpired, {});
         sendResponse({ ok: true, error: null })
     }
 
