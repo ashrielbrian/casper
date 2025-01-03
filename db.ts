@@ -24,7 +24,7 @@ let dbInstance;
 
 export async function getDB() {
     if (dbInstance) {
-        console.log("Pglite instance exists. Reusing the instance...")
+        // Pglite instance exists. Reuse the instance
         await getDBName(dbInstance);
         return dbInstance;
     }
@@ -71,7 +71,7 @@ export const initSchema = async (db: PGlite) => {
             url TEXT NOT NULL UNIQUE,
             title TEXT
         );
-            
+
         CREATE TABLE IF NOT EXISTS embedding(
             id SERIAL PRIMARY KEY,
             page_id INT REFERENCES page(id) ON DELETE CASCADE,
@@ -97,7 +97,7 @@ export const initSchema = async (db: PGlite) => {
         ON page(createdAt);
 
         CREATE INDEX ON embedding USING hnsw (embedding vector_ip_ops);
-        
+
         CREATE INDEX IF NOT EXISTS filters_url_index
         ON filters(url);
     `)
@@ -136,10 +136,7 @@ export const getDBName = async (db: PGliteWorker) => {
 export const lockAndRunPglite = async (cb, { ...options }) => {
     return await navigator.locks.request("pglite", async (lock) => {
         const pg = await getDB();
-
-        console.log("pg from lock", pg)
         const result = await cb({ db: pg, ...options });
-
         return result;
     })
 }
@@ -156,7 +153,6 @@ export const storeEmbeddings = async (db: PGliteWorker, urlId: string, chunk: Ch
 
 export const getUrlId = async ({ db, url }: { db: PGliteWorker, url: string }) => {
     let res = await db.query(`SELECT id FROM page WHERE url = $1`, [url]);
-    console.log("URL ID: ", res.rows[0]);
     return res.rows.length > 0 ? res.rows[0].id : null
 }
 
@@ -167,7 +163,7 @@ export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }:
     let filterSites = await getFilterSites(db);
 
     if (filterSites.includes(extractDomain(url))) {
-        console.log("Skipping processing this site as it is in the filtered sites list.")
+        // skip processing this site as it is in the filtered sites list
         return true;
     }
 
@@ -177,7 +173,6 @@ export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }:
 
     } else {
         let out = await db.query("INSERT INTO page (url, title) VALUES ($1, $2)", [url, "test"]);
-        console.log("Inserted into pages", out.affectedRows)
     }
     return false;
 }
@@ -188,7 +183,7 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
         FROM embedding
 
         -- the inner product is negative, so we negate matchThreshold
-        LEFT JOIN page 
+        LEFT JOIN page
         ON page.id = embedding.page_id
         WHERE embedding.embedding <#> $1 < $2
         ORDER BY prob
@@ -247,24 +242,18 @@ export const nukeDb = async (db: PGliteWorker) => {
     await db.exec(`DELETE FROM embedding;`)
     await db.exec(`DELETE FROM search_results_cache;`)
     await db.exec(`DELETE FROM db;`)
-    console.log("URLs deleted: ", res.affectedRows);
 }
 
 export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number[], similarities: number[], searchText: string) => {
     if (searchResultIds.length > 0 && searchText.length > 0) {
 
-        console.log("inserting search text ---> ", searchText)
-        console.log("storeSearchCache")
-        await getDBName(db)
         await db.transaction(async (tx) => {
             await tx.query("DELETE FROM search_results_cache;")
 
             for (let [_, sid, sim] of zip(searchResultIds, similarities)) {
-                console.log(`Updating '${searchText}' with ${sid}`)
                 await tx.query(`INSERT INTO search_results_cache(embedding_id, search_text, similarity) VALUES ($1, $2, $3)`, [sid, searchText, sim])
 
             }
-            console.log("Updated search cache");
         });
     }
 }
@@ -274,21 +263,12 @@ export const deleteStoreCache = async (db: PGliteWorker) => {
 }
 
 export const getSearchResultsCache = async (db: PGliteWorker) => {
-    console.log("getSearchResultsCache")
-    await getDBName(db)
     const res = await db.query(`
         SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id, src.search_text
         FROM search_results_cache AS src
         LEFT JOIN embedding emb ON emb.id = src.embedding_id
         LEFT JOIN page ON page.id = emb.page_id;
     `);
-    const rese = await db.query(`
-        SELECT *
-        FROM search_results_cache AS src
-    `);
-    console.log("vanilla search results cache", rese.rows)
-
-    console.log("get search results cache", res.rows)
     return {
         cache: res.rows.map((row: any) => ({
             id: row.id,
