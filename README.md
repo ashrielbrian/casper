@@ -67,8 +67,10 @@ casper/
 ### Building the extension
 
 There's a weird issue where the plasmo build process generates `_empty*.js` files when compiling the pglite dist bundle. These files present a problem when trying to load unpacked in a Chrome extension.
-I added a script `clean-empty.js` to remove these files during the build process.
+I added a script `clean-empty.js` to remove these files during the build process. In `package.json`, this is: `plasmo build && node clean-empty.js`, abbreviated with:
 
 ```
     pnpm build
 ```
+
+If you use `pnpm dev`, you'll need to remove the files yourself manually. But this only needs to be done once at the start - any subsequent updates to the code will trigger Plasmo to repackage the extension, but will not rebuild and therefore, not recreate new `_empty*.js` files.
