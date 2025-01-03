@@ -31,3 +31,44 @@ This should create a production bundle for your extension, ready to be zipped an
 ## Submit to the webstores
 
 The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+
+# Setting up the dependencies
+
+### `electric-sql/pglite`
+
+`casper` uses postgres wasm in the browser, and we need its distribution bundled together. You can head over to their [repo](https://github.com/electric-sql/pglite?tab=readme-ov-file#how-to-build-pglite-and-contribute).
+
+1. Find their latest PR, go to the comments, and download the file in the link for `PGlite`.
+2. Untar the downloaded file. Its contents should look like:
+
+```
+package/
+    dist/
+    LICENSE
+    package.json
+    README.md
+```
+3. Rename `dist/` to `electric-sql`.
+4. Create a new directory named `dist/` in the root directory of `casper/`.
+5. Copy and paste the renamed directory `electric-sql/` into `dist/`.
+
+Your final directory structure should look something like:
+
+```
+casper/
+    components/
+    ...
+    dist/
+        electric-sql/
+    ...
+    README.md
+```
+
+### Building the extension
+
+There's a weird issue where the plasmo build process generates `_empty*.js` files when compiling the pglite dist bundle. These files present a problem when trying to load unpacked in a Chrome extension.
+I added a script `clean-empty.js` to remove these files during the build process.
+
+```
+    pnpm build
+```
