@@ -2,7 +2,7 @@
     "name": "casper",
     "displayName": "Casper",
     "version": "0.0.1",
-    "description": "A basic Plasmo extension.",
+    "description": "Search the contents of your browsing history fully in-browser.",
     "author": "Brian T",
     "scripts": {
         "dev": "plasmo dev",
