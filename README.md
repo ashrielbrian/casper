@@ -3,6 +3,8 @@
 👻 Casper is your friendly neighbourhood extension, grabbing the contents of the sites you visit, chunking it, generating its embedding representations and storing them in a Postgres wasm living in the browser. In fact, everything in Casper is performed fully in-browser.
 Nothing leaves your browser, no API calls at all, other than to download the encoder-only model it needs to generate the learned representations of the chunked contents.
 
+![casper up close demo](docs/casper_up_close.gif)
+
 # Setting up the dependencies
 
 ### `electric-sql/pglite`
@@ -81,3 +83,4 @@ For any changes made to the postgres database, I found it necessary to wrap the 
 2. Reinject script on extension update to stop invalidated error notification
 3. Add reranker to search results
 4. Use a proper ORM + db migration
+5. Tests 😅
