@@ -44,8 +44,6 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     useEffect(() => {
         const getCache = async () => {
             const { cache, searchText } = await getSearchResultsCache(worker);
-            console.log("cache", cache)
-            console.log("searchText", searchText)
             if (cache && cache.length > 0) {
                 setSearchResults(cache);
                 setPrevSearchText(searchText);
@@ -58,7 +56,6 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }, [worker])
 
     useEffect(() => {
-        console.log("SEARCH RESULTS CHANGED!", searchResults)
         if (searchResults && searchResults.length > 0 && textToSearch) {
             const cacheResults = async () => {
                 await storeSearchCache(
