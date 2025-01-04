@@ -104,7 +104,6 @@ export const initSchema = async (db: PGlite) => {
 
     if (await countRows(db, "db") === 0) {
         let special = crypto.randomUUID();
-        console.log("generated uuid", special)
         await db.query("INSERT INTO db(name) VALUES ($1) ON CONFLICT DO NOTHING", [special]);
     }
 
@@ -210,7 +209,6 @@ export const deletePagesOlderThan = async (db: PGliteWorker, numDays: number = 1
         RETURNING *;
     `)
 
-    console.log(`Ran delete: ${res.affectedRows} rows were affected.`)
     return res.affectedRows;
 }
 

@@ -66,24 +66,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 if (textChunks.length <= 0) {
                     sendResponse({ ok: false, error: null, msg: `No chunks sent.` })
-                    return;
+                } else {
+                    navigator.locks.request("pglite", async (lock) => {
+                        let pg = await getDB()
+                        for (let chunk of textChunks) {
+                            let embedding = await runInference(pipeline, chunk.content);
+                            await storeEmbeddings(pg, urlId, chunk, embedding);
+                        }
+
+                        sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
+                    })
                 }
-
-                navigator.locks.request("pglite", async (lock) => {
-                    let pg = await getDB()
-                    for (let chunk of textChunks) {
-
-                        let embedding = await runInference(pipeline, chunk.content);
-                        await storeEmbeddings(pg, urlId, chunk, embedding);
-                    }
-                    sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
-                })
             }
         })()
-
-
     } else if (message.type === "get_embedding") {
-
         (async () => {
             const { chunk } = message;
             const pipeline = await getLLMPipeline();
@@ -92,9 +88,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ ok: true, error: null, embedding })
         })()
     } else if (message.type === "clean_up") {
-
         (async () => {
             await lockAndRunPglite(deleteIfUrlIsExpired, {});
+
             sendResponse({ ok: true, error: null })
         })()
     }
