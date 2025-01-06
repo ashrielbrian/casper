@@ -135,6 +135,8 @@ export const getDBName = async (db: PGliteWorker) => {
 export const lockAndRunPglite = async (cb, { ...options }) => {
     return await navigator.locks.request("pglite", async (lock) => {
         const pg = await getDB();
+        // IMPORTANT: all callbacks that are passed through must use `db` as a field in the input obj
+        // TODO: need better docs + abstraction for this
         const result = await cb({ db: pg, ...options });
         return result;
     })

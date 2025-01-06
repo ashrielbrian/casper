@@ -43,8 +43,8 @@ const runInference = async (pipeline, chunk: string) => {
     return embedding;
 }
 
-const deleteIfUrlIsExpired = async (worker: PGliteWorker) => {
-    return await deletePagesOlderThan(worker);
+const deleteIfUrlIsExpired = async ({ db }) => {
+    return await deletePagesOlderThan(db);
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
