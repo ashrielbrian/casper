@@ -7,7 +7,8 @@
     "scripts": {
         "dev": "plasmo dev",
         "build": "plasmo build && node clean-empty.js",
-        "package": "plasmo package"
+        "package": "plasmo package",
+        "test": "mocha tests/*.test.ts"
     },
     "dependencies": {
         "@radix-ui/react-dialog": "^1.1.2",
@@ -29,14 +30,19 @@
     },
     "devDependencies": {
         "@ianvs/prettier-plugin-sort-imports": "4.1.1",
+        "@types/chai": "^5.0.1",
         "@types/chrome": "0.0.258",
+        "@types/mocha": "^10.0.10",
         "@types/node": "20.11.5",
         "@types/react": "18.2.48",
         "@types/react-dom": "18.2.18",
         "autoprefixer": "^10.4.20",
+        "chai": "^5.1.2",
+        "mocha": "^11.0.1",
         "postcss": "^8.4.47",
         "prettier": "3.2.4",
         "tailwindcss": "^3.4.13",
+        "tsx": "^4.19.2",
         "typescript": "5.3.3"
     },
     "manifest": {
