@@ -31,3 +31,6 @@ dist/
 
 # typescript
 .tsbuildinfo
+
+# in-memory pglite for testing
+:memory:
