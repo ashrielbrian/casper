@@ -148,8 +148,6 @@ export const storeEmbeddings = async (db: PGliteWorker, urlId: string, chunk: Ch
     const insertRes = await db.query(`INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, ${embStr}, $3);`,
         [urlId, chunk.content, chunk.id]
     );
-
-    console.log("Inserted embedding", insertRes)
 }
 
 export const getUrlId = async ({ db, url }: { db: PGliteWorker, url: string }) => {
@@ -159,23 +157,18 @@ export const getUrlId = async ({ db, url }: { db: PGliteWorker, url: string }) =
 
 export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }: { db: PGliteWorker, url: string, withinDays: number }) => {
     // fetch from db whether url exists and/or is within the required days
-    // TODO: filter out URL for withinDays
-    let res = await db.query("SELECT id, createdAt FROM page WHERE url = $1", [url])
     let filterSites = await getFilterSites(db);
-
     if (filterSites.includes(extractDomain(url))) {
         // skip processing this site as it is in the filtered sites list
         return true;
     }
 
-    if (res.rows.length > 0) {
-        console.log(`url exist ${url} of rows: ${res.rows}`)
-        return true;
-
-    } else {
-        let out = await db.query("INSERT INTO page (url, title) VALUES ($1, $2)", [url, "test"]);
-    }
-    return false;
+    let res = await db.query(`
+        SELECT * FROM page
+        WHERE url = $1
+        AND createdAt > NOW() - INTERVAL '${withinDays} days'
+    `, [url])
+    return res.rows.length > 0;
 }
 
 export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
