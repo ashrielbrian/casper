@@ -67,8 +67,7 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
             if (curr_chunk_size + node_length < CHUNK_SIZE) {
                 curr_chunk += ` ${node.content}`;
                 curr_chunk_size += node_length;
-                // TODO: uses the most recent node's id. can be improved
-                curr_id = node.id ? node.id : curr_id
+                if (!curr_id) curr_id = node.id;
             } else {
                 // adding the current node would exceed CHUNK_SIZE. add the existing chunk, 
                 // and deal with the current node in the next iteration
@@ -80,7 +79,7 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
                     })
                 }
 
-                curr_id = node.id ? node.id : curr_id
+                curr_id = node.id;
                 curr_chunk_size = node_length;
                 curr_chunk = node.content;
             }
