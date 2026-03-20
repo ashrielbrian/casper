@@ -19,7 +19,10 @@ const PlasmoOverlay = () => {
         const processPage = async () => {
             try {
                 const chunks = await parseChunkHtmlContent(webpageBodyContent);
-                await processPageInBackground(location.href, chunks)
+                const response = await processPageInBackground(location.href, chunks);
+                if (response && !response.ok) {
+                    console.warn("[casper] Background processing failed:", response.error || response.msg);
+                }
             } catch (err) {
                 console.error("Failed to process page:", err);
             }

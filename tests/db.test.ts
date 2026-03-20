@@ -32,6 +32,12 @@ describe('PGLite Database Tests', () => {
             expect(tables.rows).to.have.lengthOf(5);
         });
 
+        it('should be idempotent (calling initSchema twice should not throw)', async () => {
+            await db.initSchema(testDb);
+            const count = await db.countRows(testDb, "page");
+            expect(count).to.equal(0);
+        });
+
         it('should create default filters', async () => {
             const filters = await db.getFilterSites(testDb);
             expect(filters).to.include('facebook.com');

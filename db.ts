@@ -97,7 +97,7 @@ export const initSchema = async (db: PGlite) => {
         CREATE INDEX IF NOT EXISTS page_created_at_index
         ON page(createdAt);
 
-        CREATE INDEX ON embedding USING hnsw (embedding vector_ip_ops);
+        CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON embedding USING hnsw (embedding vector_ip_ops);
 
         CREATE INDEX IF NOT EXISTS filters_url_index
         ON filters(url);

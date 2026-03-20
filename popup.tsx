@@ -20,8 +20,8 @@ function IndexPopup() {
     const [sitesToFilter, setSitesToFilter] = useState([]);
     const [hasSettingsChanged, setHasSettingsChanged] = useState(false);
 
-    const setupWorker = () => {
-        const newWorker = new PGliteWorker(
+    const setupWorker = async () => {
+        const newWorker = await PGliteWorker.create(
             new Worker(new URL("./worker.js", import.meta.url), {
                 type: "module"
             }), {

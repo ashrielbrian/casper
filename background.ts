@@ -53,10 +53,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const urlIsPresent = await lockAndRunPglite(urlIsPresentOrInDatetimeRange, { url });
 
                 if (urlIsPresent) {
+                    console.log(`[casper] Skipping ${url} (already processed)`);
                     sendResponse({ ok: true, error: null, msg: `URL ${url} has been processed before. Skipping...` })
                 } else if (textChunks.length <= 0) {
+                    console.log(`[casper] Skipping ${url} (no chunks extracted)`);
                     sendResponse({ ok: false, error: null, msg: `No chunks sent.` })
                 } else {
+                    console.log(`[casper] Processing ${url} (${textChunks.length} chunks)...`);
                     const llmPipeline = await getLLMPipeline();
 
                     await navigator.locks.request("pglite", async () => {
@@ -69,9 +72,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         }
                     });
 
+                    console.log(`[casper] Done processing ${url}`);
                     sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
                 }
             } catch (err) {
+                console.error(`[casper] process_page failed for ${url}:`, err);
                 sendResponse({ ok: false, error: String(err), msg: "process_page failed" })
             }
         })()
@@ -84,6 +89,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 sendResponse({ ok: true, error: null, embedding })
             } catch (err) {
+                console.error("[casper] get_embedding failed:", err);
                 sendResponse({ ok: false, error: String(err), embedding: null })
             }
         })()
@@ -93,6 +99,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await lockAndRunPglite(deleteIfUrlIsExpired, {});
                 sendResponse({ ok: true, error: null })
             } catch (err) {
+                console.error("[casper] clean_up failed:", err);
                 sendResponse({ ok: false, error: String(err) })
             }
         })()
