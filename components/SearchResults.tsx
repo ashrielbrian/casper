@@ -18,16 +18,16 @@ export const SearchResultsTable = ({ results }: { results: SearchResult[] }) => 
                 {results.map((res) => (
                     <TableRow key={res.id}>
                         <TableCell className="font-bold">
-                            <a href={`${res.url}#${res.chunk_tag_id}`} className="link-underline-animation">
+                            <a href={`${res.url ?? ""}#${res.chunk_tag_id ?? ""}`} className="link-underline-animation">
                                 {extractDomain(res.url)}
                             </a>
                         </TableCell>
                         <TableCell>
-                            <a href={`${res.url}#${res.chunk_tag_id}`} className="link-underline-animation">
-                                {res.content.slice(0, 100) + "..."}
+                            <a href={`${res.url ?? ""}#${res.chunk_tag_id ?? ""}`} className="link-underline-animation">
+                                {(res.content ?? "").slice(0, 100) + "..."}
                             </a>
                         </TableCell>
-                        <TableCell className="text-right">{res.prob.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{res.prob != null ? res.prob.toFixed(2) : "—"}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>

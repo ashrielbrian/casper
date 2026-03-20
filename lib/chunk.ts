@@ -2,6 +2,14 @@ import { AutoTokenizer } from "@xenova/transformers"
 
 export const MODEL_TYPE = 'Xenova/all-MiniLM-L6-v2';
 
+let cachedTokenizer = null;
+const getTokenizer = async (model = MODEL_TYPE) => {
+    if (!cachedTokenizer) {
+        cachedTokenizer = await AutoTokenizer.from_pretrained(model);
+    }
+    return cachedTokenizer;
+};
+
 export interface Node {
     content: string
     tag: string
@@ -43,8 +51,8 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
     traverseNode(doc.body)
     const filteredNodes = nodes.filter(node => headerTags.includes(node.tag) || node.content.length > MIN_CHAR_LIMIT)
 
-    const chunkContents = async (nodes: Node[], tokenizerType = 'Xenova/all-MiniLM-L6-v2') => {
-        const tokenizer = await AutoTokenizer.from_pretrained(tokenizerType);
+    const chunkContents = async (nodes: Node[]) => {
+        const tokenizer = await getTokenizer();
 
         const CHUNK_SIZE = 256;
         const chunks: Chunk[] = [];
@@ -86,9 +94,6 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
                 id: curr_id
             })
         }
-
-        console.log(filteredNodes)
-        console.log(chunks)
 
         return chunks;
     }

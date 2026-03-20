@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { Button } from "./Button"
 import { Card } from "./Card"
 import { type PGliteWorker } from "~dist/electric-sql/worker";
-import { removeFilterSites, saveFilterSites, saveModelType, getFilterSites, nukeDb } from "~db";
+import { removeFilterSites, saveFilterSites, getFilterSites, nukeDb } from "~db";
 import { Label } from "./Label"
 import { ModelSelector } from "./ModelSelector"
 import { SelectTagInput } from "./TagInputs"
@@ -42,9 +42,10 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
             getExistingFilterSites().catch(console.error);
             setComponentSetup(true);
         }
-    }, []);
+    }, [pg]);
 
     const updateSites = async () => {
+        if (!pg) return;
         const { addedSites, removedSites } = getDifferenceBetweenOldAndNew(originalSitesToFilter, sitesToFilter);
 
         if (removedSites.size > 0) {
@@ -78,19 +79,13 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
     }
 
     useEffect(() => {
-        // check if the sites have been updated and changed
-        // we also need to wait for the component to setup as the initial useEffect populates the originalSitesToFilter, otherwise
-        // this if statement executes before the originalSitesToFilter has been populated
         if (!hasChanged && componentSetup) {
-            console.log("sites to filter has changed. updating..")
-            console.log("ori sites", originalSitesToFilter)
-            console.log("new sites", sitesToFilter)
             const { addedSites, removedSites } = getDifferenceBetweenOldAndNew(originalSitesToFilter, sitesToFilter);
             if (addedSites.size > 0 || removedSites.size > 0) {
                 setHasChanged(true);
             }
         }
-    }, [sitesToFilter])
+    }, [sitesToFilter, hasChanged, componentSetup])
 
     const deleteDb = async () => {
         if (pg) {

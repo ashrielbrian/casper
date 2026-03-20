@@ -6,19 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 
-export const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => a.map((ele, idx) => [idx, ele, b[idx]])
+export const zip = <T, U>(a: T[], b: U[]): [number, T, U][] => {
+    const len = Math.min(a.length, b.length);
+    return a.slice(0, len).map((ele, idx) => [idx, ele, b[idx]]);
+}
 
-export const extractDomain = (url: string) => {
-    // Create a URL object to parse the URL
-    const parsedUrl = new URL(url);
-
-    // Extract the hostname from the parsed URL
-    let domain = parsedUrl.hostname;
-
-    // Remove 'www.' if present
-    if (domain.startsWith('www.')) {
-        domain = domain.slice(4);
+export const extractDomain = (url: string): string => {
+    try {
+        const parsedUrl = new URL(url);
+        let domain = parsedUrl.hostname;
+        if (domain.startsWith('www.')) {
+            domain = domain.slice(4);
+        }
+        return domain;
+    } catch {
+        return url ?? "";
     }
-
-    return domain;
 }
