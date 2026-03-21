@@ -220,10 +220,10 @@ export const getFilterSites = async (db) => {
 }
 
 export const nukeDb = async (db) => {
-    const res = await db.query("DELETE FROM page")
-    await db.exec(`DELETE FROM embedding;`)
-    await db.exec(`DELETE FROM search_results_cache;`)
-    await db.exec(`DELETE FROM db;`)
+    await db.transaction(async (tx) => {
+        await tx.exec('DELETE FROM page;');
+        await tx.exec('DELETE FROM db;');
+    });
 }
 
 export const storeSearchCache = async (db, searchResultIds: number[], similarities: number[], searchText: string) => {

@@ -71,11 +71,12 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
     }
 
     const onSettingsSave = async () => {
-
-        // TODO:
-        // saveModelType(pg, "")
-        setHasChanged(false);
-        await updateSites()
+        try {
+            await updateSites();
+            setHasChanged(false);
+        } catch (err) {
+            console.error("[casper] Failed to save settings:", err);
+        }
     }
 
     useEffect(() => {
@@ -91,6 +92,7 @@ export const Settings: React.FC<SettingsProps> = ({ pg, sitesToFilter, setSitesT
         if (pg) {
             await nukeDb(pg);
             setShowDeleteConfirmation(true);
+            setTimeout(() => setShowDeleteConfirmation(false), 3000);
         }
     }
 
