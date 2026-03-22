@@ -1,6 +1,5 @@
 
 import { PGlite } from "~dist/electric-sql";
-import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
 import { vector } from '~dist/electric-sql/vector';
 import { extractDomain, zip } from "~lib/utils";
 import type { Chunk } from "~lib/chunk";
@@ -17,35 +16,37 @@ export interface SearchResult {
     prob: number
 }
 
-const DB_STORAGE = "idb://casper"
+export const DB_STORAGE = "idb://casper"
 
 // TODO: add a Web Lock on dbInstance? so that whoever needs to use it needs to wait
 let dbInstance;
 
 export async function getDB() {
     if (dbInstance) {
-        // Pglite instance exists. Reuse the instance
-        await getDBName(dbInstance);
         return dbInstance;
     }
 
-    console.log("Attempting to create pglite db")
+    try {
+        dbInstance = await PGlite.create(DB_STORAGE, {
+            extensions: {
+                vector
+            },
+        })
 
-    dbInstance = await PGlite.create(DB_STORAGE, {
-        extensions: {
-            vector
-        },
-        // relaxedDurability: false,
-        // debug: 1
-    })
-
-    await initSchema(dbInstance);
-    await getDBName(dbInstance)
-
-    return dbInstance;
+        await initSchema(dbInstance);
+        return dbInstance;
+    } catch (err) {
+        dbInstance = null;
+        throw err;
+    }
 }
 
-export const countRows = async (db, table) => {
+const ALLOWED_TABLES = new Set(["db", "page", "embedding", "filters", "search_results_cache"]);
+
+export const countRows = async (db, table: string) => {
+    if (!ALLOWED_TABLES.has(table)) {
+        throw new Error(`countRows: invalid table name "${table}"`);
+    }
     const res = await db.query(`SELECT COUNT(*) FROM ${table};`);
     return res.rows[0].count;
 };
@@ -96,7 +97,7 @@ export const initSchema = async (db: PGlite) => {
         CREATE INDEX IF NOT EXISTS page_created_at_index
         ON page(createdAt);
 
-        CREATE INDEX ON embedding USING hnsw (embedding vector_ip_ops);
+        CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON embedding USING hnsw (embedding vector_ip_ops);
 
         CREATE INDEX IF NOT EXISTS filters_url_index
         ON filters(url);
@@ -118,18 +119,10 @@ export const initSchema = async (db: PGlite) => {
     return;
 }
 
-export const getDBName = async (db: PGliteWorker) => {
-    // await db.query(`
-    //     CREATE TABLE IF NOT EXISTS db(
-    //     id SERIAL PRIMARY KEY,
-    //     name TEXT UNIQUE
-    // );`);
-    const res = await db.query('SELECT id, name FROM db;');
-
-    const dbId = res.rows.length > 0 ? res.rows[0].name : null
-    console.log("-------------- DATABASE UUID --------------")
-    console.log(dbId);
-    console.log("-------------- ------------- --------------")
+export const getOrCreatePage = async (db, url: string): Promise<number> => {
+    await db.query("INSERT INTO page(url) VALUES ($1) ON CONFLICT (url) DO NOTHING", [url]);
+    const res = await db.query("SELECT id FROM page WHERE url = $1", [url]);
+    return res.rows[0].id;
 }
 
 export const lockAndRunPglite = async (cb, { ...options }) => {
@@ -142,20 +135,19 @@ export const lockAndRunPglite = async (cb, { ...options }) => {
     })
 }
 
-export const storeEmbeddings = async (db: PGliteWorker, urlId: string, chunk: Chunk, embedding: number[]) => {
-
-    let embStr = `'[${embedding}]'`
-    const insertRes = await db.query(`INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, ${embStr}, $3);`,
-        [urlId, chunk.content, chunk.id]
+export const storeEmbeddings = async (db, urlId: number, chunk: Chunk, embedding: number[]) => {
+    await db.query(
+        `INSERT INTO embedding (page_id, content, embedding, chunk_tag_id) VALUES ($1, $2, $3, $4);`,
+        [urlId, chunk.content, JSON.stringify(embedding), chunk.id]
     );
 }
 
-export const getUrlId = async ({ db, url }: { db: PGliteWorker, url: string }) => {
+export const getUrlId = async ({ db, url }: { db: any, url: string }) => {
     let res = await db.query(`SELECT id FROM page WHERE url = $1`, [url]);
     return res.rows.length > 0 ? res.rows[0].id : null
 }
 
-export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }: { db: PGliteWorker, url: string, withinDays: number }) => {
+export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }: { db: any, url: string, withinDays: number }) => {
     // fetch from db whether url exists and/or is within the required days
     let filterSites = await getFilterSites(db);
     if (filterSites.includes(extractDomain(url))) {
@@ -166,12 +158,12 @@ export const urlIsPresentOrInDatetimeRange = async ({ db, url, withinDays = 3 }:
     let res = await db.query(`
         SELECT * FROM page
         WHERE url = $1
-        AND createdAt > NOW() - INTERVAL '${withinDays} days'
-    `, [url])
+        AND createdAt > NOW() - INTERVAL '1 day' * $2
+    `, [url, withinDays])
     return res.rows.length > 0;
 }
 
-export const search = async (db: PGliteWorker, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
+export const search = async (db, embedding: number[], matchThreshold = 0.8, limit = 5): Promise<SearchResult[]> => {
     const res = await db.query(`
         SELECT embedding.id, content, page_id, page.url as url, embedding.embedding <#> $1 AS prob, embedding.chunk_tag_id
         FROM embedding
@@ -196,48 +188,45 @@ export const search = async (db: PGliteWorker, embedding: number[], matchThresho
     }));
 }
 
-export const deletePagesOlderThan = async (db: PGliteWorker, numDays: number = 14) => {
+export const deletePagesOlderThan = async (db, numDays: number = 14) => {
 
     const res = await db.query(`
         DELETE FROM page
-        WHERE page.createdAt < NOW() - INTERVAL '${numDays} days'
+        WHERE page.createdAt < NOW() - INTERVAL '1 day' * $1
         RETURNING *;
-    `)
+    `, [numDays])
 
     return res.affectedRows;
 }
 
-export const saveFilterSites = async (db: PGliteWorker, listOfSites: string[]) => {
+export const saveFilterSites = async (db, listOfSites: string[]) => {
     await db.transaction(async (tx) => {
-        // not performant, but this will have to do for now.
-        listOfSites.forEach(async (siteUrl) => {
+        for (const siteUrl of listOfSites) {
             await tx.query('INSERT INTO filters(url) VALUES($1)', [siteUrl])
-        });
+        }
     })
 }
-export const removeFilterSites = async (db: PGliteWorker, listOfSites: string[]) => {
+export const removeFilterSites = async (db, listOfSites: string[]) => {
     await db.transaction(async (tx) => {
-        // not performant, but this will have to do for now.
-        listOfSites.forEach(async (siteUrl) => {
+        for (const siteUrl of listOfSites) {
             await tx.query('DELETE FROM filters WHERE url = $1', [siteUrl])
-        });
+        }
     })
 }
 
-export const getFilterSites = async (db: PGliteWorker) => {
+export const getFilterSites = async (db) => {
     const res = await db.query("SELECT url FROM filters");
     return res.rows.map((m) => m.url);
 }
 
-export const nukeDb = async (db: PGliteWorker) => {
-    console.log("Nuking database. Bye bye.")
-    const res = await db.query("DELETE FROM page")
-    await db.exec(`DELETE FROM embedding;`)
-    await db.exec(`DELETE FROM search_results_cache;`)
-    await db.exec(`DELETE FROM db;`)
+export const nukeDb = async (db) => {
+    await db.transaction(async (tx) => {
+        await tx.exec('DELETE FROM page;');
+        await tx.exec('DELETE FROM db;');
+    });
 }
 
-export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number[], similarities: number[], searchText: string) => {
+export const storeSearchCache = async (db, searchResultIds: number[], similarities: number[], searchText: string) => {
     if (searchResultIds.length > 0 && searchText.length > 0) {
 
         await db.transaction(async (tx) => {
@@ -251,11 +240,11 @@ export const storeSearchCache = async (db: PGliteWorker, searchResultIds: number
     }
 }
 
-export const deleteStoreCache = async (db: PGliteWorker) => {
+export const deleteStoreCache = async (db) => {
     await db.exec(`DELETE FROM search_results_cache;`)
 }
 
-export const getSearchResultsCache = async (db: PGliteWorker) => {
+export const getSearchResultsCache = async (db) => {
     const res = await db.query(`
         SELECT emb.id, emb.content, emb.page_id, page.url, src.similarity AS prob, emb.chunk_tag_id, src.search_text
         FROM search_results_cache AS src
@@ -275,4 +264,3 @@ export const getSearchResultsCache = async (db: PGliteWorker) => {
     }
 }
 
-export const saveModelType = async (db: PGliteWorker, modelType: string) => { }

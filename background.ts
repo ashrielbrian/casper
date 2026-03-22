@@ -1,8 +1,7 @@
 export { }
 
-import { getDB, getUrlId, lockAndRunPglite, deletePagesOlderThan, storeEmbeddings, urlIsPresentOrInDatetimeRange } from "~db";
+import { getDB, getOrCreatePage, lockAndRunPglite, deletePagesOlderThan, storeEmbeddings, urlIsPresentOrInDatetimeRange } from "~db";
 import { pipeline, env, type PipelineType } from "@xenova/transformers";
-import { PGliteWorker } from "~dist/electric-sql/worker";
 import type { Chunk } from "~lib/chunk";
 import { MODEL_TYPE } from "~lib/chunk";
 
@@ -19,8 +18,6 @@ class PipelineSingleton {
         if (this.instance === null) {
             this.instance = pipeline(this.task, this.model, {
                 progress_callback,
-                // dtype: "fp32",
-                // device: !!navigator.gpu ? "webgpu" : "wasm"
             })
         }
         return this.instance;
@@ -28,9 +25,7 @@ class PipelineSingleton {
 }
 
 const getLLMPipeline = async () => {
-    return await PipelineSingleton.getInstance((x) => {
-        console.log("Progress update", x)
-    });
+    return await PipelineSingleton.getInstance();
 }
 
 const runInference = async (pipeline, chunk: string) => {
@@ -49,49 +44,64 @@ const deleteIfUrlIsExpired = async ({ db }) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
-    // check the URL - if it exists, check if age of the URL. if older than a day, delete the old entries, chunk new and get new embs
     if (message.type === "process_page") {
 
         const { type, url, textChunks }: { type: string, url: string, textChunks: Chunk[] } = message;
 
         (async () => {
-            const urlIsPresent = await lockAndRunPglite(urlIsPresentOrInDatetimeRange, { url });
+            try {
+                const urlIsPresent = await lockAndRunPglite(urlIsPresentOrInDatetimeRange, { url });
 
-            if (urlIsPresent) {
-                // URL exists OR is still valid. Do not process, and return.
-                sendResponse({ ok: true, error: null, msg: `URL ${url} has been processed before. Skipping...` })
-            } else {
-                const urlId = await lockAndRunPglite(getUrlId, { url });
-                const pipeline = await getLLMPipeline();
-
-                if (textChunks.length <= 0) {
+                if (urlIsPresent) {
+                    console.log(`[casper] Skipping ${url} (already processed)`);
+                    sendResponse({ ok: true, error: null, msg: `URL ${url} has been processed before. Skipping...` })
+                } else if (textChunks.length <= 0) {
+                    console.log(`[casper] Skipping ${url} (no chunks extracted)`);
                     sendResponse({ ok: false, error: null, msg: `No chunks sent.` })
                 } else {
-                    navigator.locks.request("pglite", async (lock) => {
-                        let pg = await getDB()
-                        for (let chunk of textChunks) {
-                            let embedding = await runInference(pipeline, chunk.content);
-                            await storeEmbeddings(pg, urlId, chunk, embedding);
-                        }
+                    console.log(`[casper] Processing ${url} (${textChunks.length} chunks)...`);
+                    const llmPipeline = await getLLMPipeline();
 
-                        sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
-                    })
+                    await navigator.locks.request("pglite", async () => {
+                        const pg = await getDB();
+                        const pageId = await getOrCreatePage(pg, url);
+
+                        for (const chunk of textChunks) {
+                            const embedding = await runInference(llmPipeline, chunk.content);
+                            await storeEmbeddings(pg, pageId, chunk, embedding);
+                        }
+                    });
+
+                    console.log(`[casper] Done processing ${url}`);
+                    sendResponse({ ok: true, error: null, msg: `Done processing ${textChunks.length} chunks.` })
                 }
+            } catch (err) {
+                console.error(`[casper] process_page failed for ${url}:`, err);
+                sendResponse({ ok: false, error: String(err), msg: "process_page failed" })
             }
         })()
     } else if (message.type === "get_embedding") {
         (async () => {
-            const { chunk } = message;
-            const pipeline = await getLLMPipeline();
-            let embedding = await runInference(pipeline, chunk);
+            try {
+                const { chunk } = message;
+                const llmPipeline = await getLLMPipeline();
+                const embedding = await runInference(llmPipeline, chunk);
 
-            sendResponse({ ok: true, error: null, embedding })
+                sendResponse({ ok: true, error: null, embedding })
+            } catch (err) {
+                console.error("[casper] get_embedding failed:", err);
+                sendResponse({ ok: false, error: String(err), embedding: null })
+            }
         })()
     } else if (message.type === "clean_up") {
         (async () => {
-            await lockAndRunPglite(deleteIfUrlIsExpired, {});
-
-            sendResponse({ ok: true, error: null })
+            try {
+                await lockAndRunPglite(deleteIfUrlIsExpired, {});
+                sendResponse({ ok: true, error: null })
+            } catch (err) {
+                console.error("[casper] clean_up failed:", err);
+                sendResponse({ ok: false, error: String(err) })
+            }
         })()
     }
 

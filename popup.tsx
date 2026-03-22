@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
 
-import { type SearchResult } from "~db";
+import { type SearchResult, DB_STORAGE } from "~db";
 import { vector } from "~dist/electric-sql/vector";
 import { PGliteWorker } from 'dist/electric-sql/worker/index.js'
+
 
 import "./style.css"
 
@@ -19,13 +20,13 @@ function IndexPopup() {
     const [sitesToFilter, setSitesToFilter] = useState([]);
     const [hasSettingsChanged, setHasSettingsChanged] = useState(false);
 
-    const setupWorker = () => {
-        const newWorker = new PGliteWorker(
+    const setupWorker = async () => {
+        const newWorker = await PGliteWorker.create(
             new Worker(new URL("./worker.js", import.meta.url), {
                 type: "module"
             }), {
             extensions: { vector },
-            dataDir: "idb://casper.db"
+            dataDir: DB_STORAGE
         });
         setWorker(newWorker);
     }
@@ -49,7 +50,13 @@ function IndexPopup() {
 
     useEffect(() => {
         setupWorker()
-        return setupBackgroundTabClickListener()
+        const cleanupClickListener = setupBackgroundTabClickListener()
+        return () => {
+            cleanupClickListener()
+            if (worker) {
+                worker.close?.()
+            }
+        }
     }, [])
 
     return (

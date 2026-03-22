@@ -32,6 +32,12 @@ describe('PGLite Database Tests', () => {
             expect(tables.rows).to.have.lengthOf(5);
         });
 
+        it('should be idempotent (calling initSchema twice should not throw)', async () => {
+            await db.initSchema(testDb);
+            const count = await db.countRows(testDb, "page");
+            expect(count).to.equal(0);
+        });
+
         it('should create default filters', async () => {
             const filters = await db.getFilterSites(testDb);
             expect(filters).to.include('facebook.com');
@@ -95,6 +101,38 @@ describe('PGLite Database Tests', () => {
             await db.removeFilterSites(testDb, ['test1.com']);
             filters = await db.getFilterSites(testDb);
             expect(filters).to.not.include('test1.com');
+        });
+    });
+
+    describe('nukeDb', () => {
+        it('should clear page, embedding, and cache but preserve filters', async () => {
+            const url = 'https://example.com';
+            const pageRes = await testDb.query(
+                "INSERT INTO page (url, title) VALUES ($1, $2) RETURNING id",
+                [url, "test"]
+            );
+            const urlId = pageRes.rows[0].id;
+
+            const chunk: Chunk = { id: "1", content: "Test content", len: 10 };
+            const embedding = Array(384).fill(0.1);
+            await db.storeEmbeddings(testDb, urlId, chunk, embedding);
+
+            const searchResults = await db.search(testDb, embedding, 0.8, 1);
+            await db.storeSearchCache(testDb, [searchResults[0].id], [0.95], "test");
+
+            await db.saveFilterSites(testDb, ['custom.com']);
+
+            await db.nukeDb(testDb);
+
+            expect(await db.countRows(testDb, "page")).to.equal(0);
+            expect(await db.countRows(testDb, "embedding")).to.equal(0);
+
+            const cache = await db.getSearchResultsCache(testDb);
+            expect(cache.cache).to.have.lengthOf(0);
+
+            const filters = await db.getFilterSites(testDb);
+            expect(filters).to.include('custom.com');
+            expect(filters).to.include('google.com');
         });
     });
 

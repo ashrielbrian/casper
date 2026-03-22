@@ -28,16 +28,22 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
         if (worker && textToSearch) {
             setIsSearching(true);
             setPrevSearchText("");
-            const backgroundResponse = await sendTextChunkToBackground(textToSearch);
-            const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
+            try {
+                const backgroundResponse = await sendTextChunkToBackground(textToSearch);
+                const results = await search(worker, backgroundResponse.embedding, 0.3, 5);
 
-            if (results.length === 0) {
+                if (results.length === 0) {
+                    setNoSearchResults(true);
+                } else {
+                    setNoSearchResults(false);
+                    setSearchResults(results);
+                }
+            } catch (err) {
+                console.error("Search failed:", err);
                 setNoSearchResults(true);
-            } else {
-                setNoSearchResults(false);
-                setSearchResults(results);
+            } finally {
+                setIsSearching(false);
             }
-            setIsSearching(false);
         }
     }
 
@@ -56,7 +62,7 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
     }, [worker])
 
     useEffect(() => {
-        if (searchResults && searchResults.length > 0 && textToSearch) {
+        if (worker && searchResults && searchResults.length > 0 && textToSearch) {
             const cacheResults = async () => {
                 await storeSearchCache(
                     worker,
@@ -68,12 +74,14 @@ export const Search: React.FC<SearchProps> = ({ worker, searchResults, setSearch
 
             cacheResults().catch(console.error)
         }
-    }, [searchResults])
+    }, [searchResults, worker, textToSearch])
 
     const clearSearchResults = async () => {
         setPrevSearchText("")
         setSearchResults([])
-        await deleteStoreCache(worker)
+        if (worker) {
+            await deleteStoreCache(worker)
+        }
     }
 
     return (

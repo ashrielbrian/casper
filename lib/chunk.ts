@@ -2,6 +2,14 @@ import { AutoTokenizer } from "@xenova/transformers"
 
 export const MODEL_TYPE = 'Xenova/all-MiniLM-L6-v2';
 
+let cachedTokenizer = null;
+const getTokenizer = async (model = MODEL_TYPE) => {
+    if (!cachedTokenizer) {
+        cachedTokenizer = await AutoTokenizer.from_pretrained(model);
+    }
+    return cachedTokenizer;
+};
+
 export interface Node {
     content: string
     tag: string
@@ -43,8 +51,8 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
     traverseNode(doc.body)
     const filteredNodes = nodes.filter(node => headerTags.includes(node.tag) || node.content.length > MIN_CHAR_LIMIT)
 
-    const chunkContents = async (nodes: Node[], tokenizerType = 'Xenova/all-MiniLM-L6-v2') => {
-        const tokenizer = await AutoTokenizer.from_pretrained(tokenizerType);
+    const chunkContents = async (nodes: Node[]) => {
+        const tokenizer = await getTokenizer();
 
         const CHUNK_SIZE = 256;
         const chunks: Chunk[] = [];
@@ -59,8 +67,7 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
             if (curr_chunk_size + node_length < CHUNK_SIZE) {
                 curr_chunk += ` ${node.content}`;
                 curr_chunk_size += node_length;
-                // TODO: uses the most recent node's id. can be improved
-                curr_id = node.id ? node.id : curr_id
+                if (!curr_id) curr_id = node.id;
             } else {
                 // adding the current node would exceed CHUNK_SIZE. add the existing chunk, 
                 // and deal with the current node in the next iteration
@@ -72,7 +79,7 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
                     })
                 }
 
-                curr_id = node.id ? node.id : curr_id
+                curr_id = node.id;
                 curr_chunk_size = node_length;
                 curr_chunk = node.content;
             }
@@ -86,9 +93,6 @@ export const parseChunkHtmlContent = async (htmlContent: string) => {
                 id: curr_id
             })
         }
-
-        console.log(filteredNodes)
-        console.log(chunks)
 
         return chunks;
     }

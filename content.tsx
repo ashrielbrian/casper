@@ -17,20 +17,29 @@ const PlasmoOverlay = () => {
         const webpageBodyContent = extractHtmlBody();
 
         const processPage = async () => {
-            const chunks = await parseChunkHtmlContent(webpageBodyContent);
-            const backgroundResponse = await processPageInBackground(location.href, chunks)
-            console.log("Page has been processed. Background response: ", backgroundResponse)
-        }
-
-        const cleanUp = async () => {
-            if (isRandomlyBelow(0.05)) {
-                const backgroundResponse = await cleanUpUrlEmbeddings();
-                console.log("Delete check ran. Background response:", backgroundResponse);
+            try {
+                const chunks = await parseChunkHtmlContent(webpageBodyContent);
+                const response = await processPageInBackground(location.href, chunks);
+                if (response && !response.ok) {
+                    console.warn("[casper] Background processing failed:", response.error || response.msg);
+                }
+            } catch (err) {
+                console.error("Failed to process page:", err);
             }
         }
 
-        processPage().catch(console.error);
-        cleanUp().catch(console.error)
+        const cleanUp = async () => {
+            try {
+                if (isRandomlyBelow(0.05)) {
+                    await cleanUpUrlEmbeddings();
+                }
+            } catch (err) {
+                console.error("Cleanup failed:", err);
+            }
+        }
+
+        processPage();
+        cleanUp();
 
     }, [])
 
