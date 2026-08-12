@@ -1,3 +1,5 @@
+
+
 # What and how?
 
 👻 Casper is your friendly neighbourhood extension, grabbing the contents of the sites you visit, chunking it, generating its embedding representations and storing them in a Postgres wasm living in the browser. In fact, everything in Casper is performed fully in-browser.
@@ -77,6 +79,15 @@ When a user opens a new web page, the content script is injected into the webpag
 For any changes made to the postgres database, I found it necessary to wrap the db reference using the navigator's web lock API, because the data was getting corrupted and inconsistent between calls. If you experience this while using Casper, do let me know.
 
 > The biggest issue I've found during Casper's development is the lack of [documented support for using pglite with browser extensions](https://github.com/electric-sql/pglite/issues/323).
+
+# Testing
+
+Tests are located in the `tests/` directory. Due to the use of the `crypto` module in `db.ts`, you must use **Node.js v20 or above** to run them.
+
+From the root directory, run:
+```bash
+pnpm test
+```
 
 # Future work
 1. Improve chunking strategy
